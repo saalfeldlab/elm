@@ -118,7 +118,6 @@ ImagePlus[] loadImages( String selection )
 
     return out;
 }
-System.out.println( IJ.getDirectory( "plugins" ) );
 
 gd = new GenericDialogPlus( "BigWarp" );
 gd.addFileField( "Light template: ", "" );
@@ -132,8 +131,8 @@ if (!gd.wasCanceled())
 
     // These two lines can remain as they are if elm is cloned into your
     // home directory.  Otherwise, they will need modification. 
-    fnTarget = IJ.getDir("home") + "/elm/resources/catmaid-fafb00-v9.1-align-tps.xml";
-	fnLandmarks = IJ.getDir("home") + "/elm/resources/lm-em-landmarks.csv";
+    fnTarget    = IJ.getDir("plugins") + "/elm/catmaid-fafb00-v9.1-align-tps.xml";
+    fnLandmarks = IJ.getDir("plugins") + "/elm/lm-em-landmarks.csv";
 
     try
     {
