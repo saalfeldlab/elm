@@ -118,6 +118,7 @@ ImagePlus[] loadImages( String selection )
 
     return out;
 }
+System.out.println( IJ.getDirectory( "plugins" ) );
 
 gd = new GenericDialogPlus( "BigWarp" );
 gd.addFileField( "Light template: ", "" );
