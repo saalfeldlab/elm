@@ -1,0 +1,267 @@
+import java.awt.Color;
+import java.awt.Desktop;
+import java.awt.KeyEventPostProcessor;
+import java.awt.Point;
+import java.awt.event.KeyEvent;
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+
+import loci.formats.FormatException;
+import loci.formats.ImageReader;
+
+import org.janelia.utility.ui.RepeatingReleasedEventsFixer;
+
+import bdv.export.ProgressWriterConsole;
+import bdv.viewer.BigWarpViewerPanel;
+import bdv.viewer.DisplayMode;
+import bigwarp.BigWarp;
+import bigwarp.BigWarpInit;
+import fiji.util.gui.GenericDialogPlus;
+import ij.IJ;
+import ij.ImageJ;
+import ij.ImagePlus;
+import net.imglib2.RealPoint;
+import net.imglib2.type.numeric.ARGBType;
+
+WIDTH  = 1024;
+HEIGHT = 1024;
+
+/**
+ * Return true if f has the extension ext,
+ * and is an image of size [ nx, ny, nz ] 
+ * and is not RGB
+ * and is single channel.
+ *  
+ * @param f
+ * @param nx the image width
+ * @param ny the image height
+ * @param nz the image depth
+ * @param ext the file extension
+ * @return
+ */
+boolean isConsistentSize( String f, int nx, int ny, int nz, String ext )
+{
+    if ( !f.endsWith( ext ) )
+        return false;
+
+    try
+    {
+        reader = new ImageReader();
+        reader.setId( f );
+        result =
+                ( !reader.isRGB() ) && 
+                ( reader.getSizeX() == nx ) && 
+                ( reader.getSizeY() == ny ) &&
+                ( reader.getSizeZ() == nz ) &&
+                ( reader.getSizeC() == 1 );
+
+        reader.close();
+        return result;
+    } 
+    catch ( FormatException e ) {}
+    catch ( IOException e ) {}
+
+    return false;
+}
+
+ImagePlus[] loadImages( String selection )
+{
+    baseF = new File( selection );
+    dir = new File( baseF.getParent() );
+    fList = dir.listFiles();
+    
+
+    baseImp = IJ.openImage( selection );
+    ext = selection.substring( selection.lastIndexOf( '.' ));
+    nx = baseImp.getWidth();
+    ny = baseImp.getHeight();
+    nz = baseImp.getNSlices();
+
+    numImages = 1;
+    loadMe = new boolean[ fList.length ];
+    for ( int i = 0; i < fList.length; i++ )
+    {
+        f = fList[ i ];
+        // dont process the file that was selected
+        if( f.isDirectory() || f.getName().equals( baseF.getName() ))
+        {
+            continue;
+        }
+
+        try
+        {
+            if ( isConsistentSize( f.getCanonicalPath(), nx, ny, nz, ext ) )
+            {
+                loadMe[ i ] = true;
+                numImages++;
+            }
+        } catch ( IOException e ) {}
+
+    }
+
+    int k = 0;
+    out = new ImagePlus[ numImages ];
+    out[ k++ ] = baseImp;
+    for ( int i = 0; i < fList.length; i++ )
+    {
+        if ( loadMe[ i ] )
+        {
+            try
+            {
+                out[ k++ ] = IJ.openImage( fList[ i ].getCanonicalPath() );
+            } 
+            catch ( IOException e ) {}
+        }
+    }
+
+    return out;
+}
+
+gd = new GenericDialogPlus( "BigWarp" );
+gd.addFileField( "Light template: ", "" );
+gd.addCheckbox( "Auto discover", true );
+gd.showDialog();
+
+if (!gd.wasCanceled())
+{
+    fnMoving = gd.getNextString();
+    autoDiscover = gd.getNextBoolean();
+
+    // These two lines can remain as they are if elm is cloned into your
+    // home directory.  Otherwise, they will need modification. 
+    fnTarget = IJ.getDir("home") + "/elm/resources/catmaid-fafb00-v9.1-align-tps.xml";
+	fnLandmarks = IJ.getDir("home") + "/elm/resources/lm-em-landmarks.csv";
+
+    try
+    {
+        System.setProperty( "apple.laf.useScreenMenuBar", "false" );
+
+        if ( autoDiscover )
+            impList = loadImages( fnMoving );
+        else
+            impList = new ImagePlus[]{ IJ.openImage( fnMoving ) };
+
+        if ( impList != null && impList.length > 0 && impList[ 0 ] != null )
+        {
+
+            bw = new BigWarp( BigWarpInit.createBigWarpDataFromImagePlusXML( impList, fnTarget ), new File( fnMoving ).getName(), new ProgressWriterConsole() );
+			bw.setImageJInstance( IJ.getInstance() );
+
+            if ( !fnLandmarks.isEmpty() )
+                bw.getLandmarkPanel().getTableModel().load( new File( fnLandmarks ) );
+
+            int i = 0;
+
+            // set colors of moving and target images
+            bw.getSetupAssignments().getConverterSetups().get( i++ ).setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 255 ) ) );
+            bw.getSetupAssignments().getConverterSetups().get( i ).setColor( new ARGBType( ARGBType.rgba( 0, 255, 0, 255 ) ) );
+
+            // set color of points
+            bw.setSpotColor( new Color( 255, 255, 0, 255 ) ); // YELLOW
+
+            bw.getViewerFrameP().setSize( WIDTH, HEIGHT );
+            bw.getViewerFrameQ().setSize( WIDTH, HEIGHT );
+
+            bw.getViewerFrameP().setLocation( 0, 0 );
+            location = bw.getViewerFrameP().getLocation();
+
+            location.setLocation( location.x + WIDTH, location.y );
+            bw.getViewerFrameQ().setLocation( location );
+
+            location.setLocation( location.x + WIDTH, location.y );
+            bw.getLandmarkPanel().setLocation( location );
+
+            // repaint
+            bw.getViewerFrameP().getViewerPanel().requestRepaint();
+            bw.getViewerFrameQ().getViewerPanel().requestRepaint();
+
+
+            keyProcessor = new KeyEventPostProcessor()
+            {
+
+                public boolean postProcessKeyEvent( KeyEvent e )
+                {
+                    if ( e.getID() == KeyEvent.KEY_PRESSED && e.getKeyCode() == KeyEvent.VK_K )
+                    {
+                        BigWarpViewerPanel panel = bw.getViewerFrameQ().getViewerPanel();
+                        RealPoint center = new RealPoint( 3 );
+                        panel.displayToGlobalCoordinates( 0.5 * panel.getWidth(), 0.5 * panel.getHeight(), center );
+                        double x = center.getDoublePosition( 0 );
+                        double y = center.getDoublePosition( 1 );
+                        double z = center.getDoublePosition( 2 );
+                        panel.displayToGlobalCoordinates( 0.5 * panel.getWidth() + 1, 0.5 * panel.getHeight(), center );
+                        double dx = x - center.getDoublePosition( 0 );
+                        double dy = y - center.getDoublePosition( 1 );
+                        double dz = z - center.getDoublePosition( 2 );
+
+                        double d = Math.sqrt( dx * dx + dy * dy + dz * dz );
+
+                        double s = Math.log( d ) / Math.log( 2 );
+
+                        x += 133937;
+                        y += 63254;
+                        z += 22880;
+                        z /= 10;
+
+                        x *= 4;
+                        y *= 4;
+                        z *= 35;
+
+                        String url = String.format(
+                                "https://neuropil.janelia.org/tracing/fafb/v9.1/?pid=1&sid0=5&xp=%f&yp=%f&zp=%f&s0=%.1f&tool=navigator",
+                                x, y, z, s );
+
+                        if ( Desktop.isDesktopSupported() )
+                        {
+                            Desktop desktop = Desktop.getDesktop();
+                            try
+                            {
+                                desktop.browse( new URI( url ) );
+                            }
+                            catch ( IOException e1 )
+                            {
+                                e1.printStackTrace();
+                            }
+                            catch ( URISyntaxException e1 )
+                            {
+                                e1.printStackTrace();
+                            }
+                        }
+                        else
+                        {
+                            Runtime runtime = Runtime.getRuntime();
+                            try
+                            {
+                                runtime.exec( "xdg-open " + url );
+                            }
+                            catch ( IOException e1 )
+                            {
+                                // TODO Auto-generated catch block
+                                e1.printStackTrace();
+                            }
+                        }
+
+                        System.out.println( url );
+
+                    }
+                    return true;
+                }
+
+            };
+
+			bw.toggleMovingImageDisplay();
+            //bw.restimateTransformation();
+            //bw.setIsMovingDisplayTransformed( true );
+            bw.getViewerFrameQ().getViewerPanel().setDisplayMode( DisplayMode.FUSED );
+            bw.matchOtherViewerPanelToActive();
+
+            //bw.addKeyEventPostProcessor( keyProcessor );
+        }
+    }
+    catch ( Exception e )
+    {
+        e.printStackTrace();
+    }
+}
