@@ -195,20 +195,20 @@ if (!gd.wasCanceled())
                 {
                     if ( e.getID() == KeyEvent.KEY_PRESSED && e.getKeyCode() == KeyEvent.VK_K )
                     {
-                        BigWarpViewerPanel panel = bw.getViewerFrameQ().getViewerPanel();
-                        RealPoint center = new RealPoint( 3 );
+                        panel = bw.getViewerFrameQ().getViewerPanel();
+                        center = new RealPoint( 3 );
                         panel.displayToGlobalCoordinates( 0.5 * panel.getWidth(), 0.5 * panel.getHeight(), center );
-                        double x = center.getDoublePosition( 0 );
-                        double y = center.getDoublePosition( 1 );
-                        double z = center.getDoublePosition( 2 );
+                        x = center.getDoublePosition( 0 );
+                        y = center.getDoublePosition( 1 );
+                        z = center.getDoublePosition( 2 );
                         panel.displayToGlobalCoordinates( 0.5 * panel.getWidth() + 1, 0.5 * panel.getHeight(), center );
-                        double dx = x - center.getDoublePosition( 0 );
-                        double dy = y - center.getDoublePosition( 1 );
-                        double dz = z - center.getDoublePosition( 2 );
+                        dx = x - center.getDoublePosition( 0 );
+                        dy = y - center.getDoublePosition( 1 );
+                        dz = z - center.getDoublePosition( 2 );
 
-                        double d = Math.sqrt( dx * dx + dy * dy + dz * dz );
+                        d = Math.sqrt( dx * dx + dy * dy + dz * dz );
 
-                        double s = Math.log( d ) / Math.log( 2 );
+                        s = Math.log( d ) / Math.log( 2 );
 
                         x += 133937;
                         y += 63254;
@@ -228,7 +228,7 @@ if (!gd.wasCanceled())
 
                         if ( Desktop.isDesktopSupported() )
                         {
-                            Desktop desktop = Desktop.getDesktop();
+                            desktop = Desktop.getDesktop();
                             try
                             {
                                 desktop.browse( new URI( url ) );
@@ -244,7 +244,7 @@ if (!gd.wasCanceled())
                         }
                         else
                         {
-                            Runtime runtime = Runtime.getRuntime();
+                            runtime = Runtime.getRuntime();
                             try
                             {
                                 runtime.exec( "xdg-open " + url );
