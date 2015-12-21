@@ -6,6 +6,9 @@ FAFB (internal to Janelia only).  Any images in the space of the fly light nc82 
 The transformation was generated manually using [bigwarp](http://fiji.sc/BigWarp) which in turn is built upon
 [BigDataViewer](http://fiji.sc/BigDataViewer).
 
+Pressing the 'K' key will open the FAFB stack in [CATMAID](http://catmaid.readthedocs.org/en/stable/) at the 
+location displayed in the current window.
+
 ## Installation
 Clone this repository into your fiji plugins folder.
 ```bash
