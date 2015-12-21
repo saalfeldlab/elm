@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.text.DecimalFormat;
 
 import loci.formats.FormatException;
 import loci.formats.ImageReader;
@@ -218,9 +219,12 @@ if (!gd.wasCanceled())
                         y *= 4;
                         z *= 35;
 
-                        String url = String.format(
-                                "https://neuropil.janelia.org/tracing/fafb/v9.1/?pid=1&sid0=5&xp=%f&yp=%f&zp=%f&s0=%.1f&tool=navigator",
-                                x, y, z, s );
+						df = new DecimalFormat( "0.000000" );
+						dfshort = new DecimalFormat( "0.0" );
+						url = "https://neuropil.janelia.org/tracing/fafb/v9.1/?pid=1&sid0=5&xp=" + df.format( x ) + 
+						 "&yp=" + df.format( y ) + 
+						 "&zp=" + df.format( z ) + 
+						 "&s0=" + dfshort.format( s ) + "&tool=navigator";
 
                         if ( Desktop.isDesktopSupported() )
                         {
@@ -259,6 +263,7 @@ if (!gd.wasCanceled())
                 }
 
             };
+			bw.addKeyEventPostProcessor( keyProcessor );
 
 			bw.toggleMovingImageDisplay();
             //bw.restimateTransformation();
