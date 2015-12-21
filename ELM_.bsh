@@ -16,7 +16,9 @@ import org.janelia.utility.ui.RepeatingReleasedEventsFixer;
 import bdv.export.ProgressWriterConsole;
 import bdv.viewer.BigWarpViewerPanel;
 import bdv.viewer.DisplayMode;
+import bdv.tools.InitializeViewerState;
 import bigwarp.BigWarp;
+import bigwarp.BigWarp.BigWarpData;
 import bigwarp.BigWarpInit;
 import fiji.util.gui.GenericDialogPlus;
 import ij.IJ;
@@ -146,13 +148,20 @@ if (!gd.wasCanceled())
         if ( impList != null && impList.length > 0 && impList[ 0 ] != null )
         {
 
-            bw = new BigWarp( BigWarpInit.createBigWarpDataFromImagePlusXML( impList, fnTarget ), new File( fnMoving ).getName(), new ProgressWriterConsole() );
+            data = BigWarpInit.createBigWarpDataFromImagePlusXML( impList, fnTarget );
+            bw = new BigWarp( data, new File( fnMoving ).getName(), new ProgressWriterConsole() );
 			bw.setImageJInstance( IJ.getInstance() );
 
             if ( !fnLandmarks.isEmpty() )
                 bw.getLandmarkPanel().getTableModel().load( new File( fnLandmarks ) );
 
             int i = 0;
+
+            // correct viewer transform and contrast
+            bw.getViewerFrameQ().getViewerPanel().getVisibilityAndGrouping().setCurrentSource( data.targetSourceIndices[ 0 ] );
+            InitializeViewerState.initTransform( bw.getViewerFrameQ().getViewerPanel() );
+            InitializeViewerState.initBrightness( 0.001, 0.999, bw.getViewerFrameQ().getViewerPanel(), bw.getSetupAssignments() );
+            InitializeViewerState.initBrightness( 0.001, 0.999, bw.getViewerFrameP().getViewerPanel(), bw.getSetupAssignments() );
 
             // set colors of moving and target images
             bw.getSetupAssignments().getConverterSetups().get( i++ ).setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 255 ) ) );
@@ -256,8 +265,6 @@ if (!gd.wasCanceled())
             //bw.setIsMovingDisplayTransformed( true );
             bw.getViewerFrameQ().getViewerPanel().setDisplayMode( DisplayMode.FUSED );
             bw.matchOtherViewerPanelToActive();
-
-            //bw.addKeyEventPostProcessor( keyProcessor );
         }
     }
     catch ( Exception e )
