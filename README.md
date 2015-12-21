@@ -10,11 +10,23 @@ Pressing the 'K' key will open the FAFB stack in [CATMAID](http://catmaid.readth
 location displayed in the current window.
 
 ## Installation
-Clone this repository into your fiji plugins folder.
-```bash
-cd <your fiji folder>/plugins
-git clone https://github.com/saalfeldlab/elm.git
-```
+Two alternatives:
+
+1. Using GIT:
+  
+  Clone this repository into your fiji plugins folder.
+  
+  ```bash
+  cd <your fiji folder>/plugins
+  git clone https://github.com/saalfeldlab/elm.git
+  ```
+2. Download and copy:
+  
+  Download the [zipped archive](https://github.com/saalfeldlab/elm/archive/master.zip) and extract into
+  
+  ```bash
+  <your fiji folder>/plugins/elm/
+  ```
 
 ## Running
 * After installation, the script can be accessed from the Fiji menu by:  
