@@ -7,7 +7,7 @@
         <resXY>1</resXY>
         <resZ>10</resZ>
 <!--        <urlFormat>https://neuropil.janelia.org/tracing/tiles/special/fafb_v9.1_align_tps_jpg85/%1$d/%5$d/%8$d/%9$d.jpg</urlFormat> -->
-        <urlFormat>https://bocklab.hhmi.org/tiles/special/fafb_v9.1_align_tps_jpg85/%1$d/%5$d/%8$d/%9$d.jpg</urlFormat>
+        <urlFormat>http://bocklab.hhmi.org/tiles/special/fafb_v9.1_align_tps_jpg85/%1$d/%5$d/%8$d/%9$d.jpg</urlFormat>
         <tileWidth>1024</tileWidth>
         <tileHeight>1024</tileHeight>
         <blockWidth>512</blockWidth>
