@@ -1,6 +1,11 @@
 # elm
 Electron-Light Microscopy tools for Janelia
 
+This project enables visualization of light microscopy in the space of a particular version of 
+FAFB (internal to Janelia only).  Any images in the space of the fly light nc82 template can be visualized.  
+The transformation was generated manually using [bigwarp](http://fiji.sc/BigWarp) which in turn is built upon
+[BigDataViewer](http://fiji.sc/BigDataViewer).
+
 ## Installation
 Clone this repository into your fiji plugins folder.
 ```bash
