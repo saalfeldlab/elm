@@ -33,7 +33,8 @@ Two alternatives:
   * Plugins > elm > ELM
 * Use the dialog to select an image to warp into FAFB space
   * Note: it must be coregistered to the template nc82 stack
-  * If "Auto discover" is selected, ELM will open the selected image and will search for images:
-      1. In the same folder
-      2. With the same extension, and
-      3. the same size as the selected image
+  * If "Auto discover" is selected, ELM will open the selected image and, if the selected image has only one channel, will search for other channels:
+      1. in the same folder,
+      2. with the same extension, and
+      3. the same size as the selected image.
+  This is the way to open multi-channel exports that come out as separate files.
