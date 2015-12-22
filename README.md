@@ -37,4 +37,5 @@ Two alternatives:
       1. in the same folder,
       2. with the same extension, and
       3. the same size as the selected image.
-  This is the way to open multi-channel exports that come out as separate files.
+    
+    This is the way to open multi-channel exports that come out as separate files.
