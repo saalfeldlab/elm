@@ -123,19 +123,20 @@ ImagePlus[] loadImages( String selection )
 }
 
 gd = new GenericDialogPlus( "BigWarp" );
+gd.addFileField( "Landmarks: ", IJ.getDir("plugins") + "/elm/lm-em-landmarks.csv" );
 gd.addFileField( "Light template: ", "" );
 gd.addCheckbox( "Auto discover", true );
 gd.showDialog();
 
 if (!gd.wasCanceled())
 {
+    fnLandmarks = gd.getNextString();
     fnMoving = gd.getNextString();
     autoDiscover = gd.getNextBoolean();
 
     // These two lines can remain as they are if elm is cloned into your
     // home directory.  Otherwise, they will need modification. 
     fnTarget    = IJ.getDir("plugins") + "/elm/catmaid-fafb00-v9.1-align-tps.xml";
-    fnLandmarks = IJ.getDir("plugins") + "/elm/lm-em-landmarks.csv";
 
     try
     {
