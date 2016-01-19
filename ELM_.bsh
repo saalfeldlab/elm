@@ -31,6 +31,8 @@ import net.imglib2.type.numeric.ARGBType;
 WIDTH  = 1024;
 HEIGHT = 1024;
 
+EXPECTED_IMAGE_DIMS = new int[]{ 1450, 725, 436 };
+
 /**
  * Return true if f has the extension ext,
  * and is an image of size [ nx, ny, nz ] 
@@ -67,6 +69,37 @@ boolean isConsistentSize( String f, int nx, int ny, int nz, String ext )
     catch ( IOException e ) {}
 
     return false;
+}
+
+void checkInputImages( ImagePlus[] impList )
+{
+	for( int i = 0; i < impList.length; i++ )
+	{
+		dims = impList[ i ].getDimensions();
+		for( int j = 0; j < 2; j++ )
+		{
+			if( dims[ j ] != EXPECTED_IMAGE_DIMS[ j ] )
+			{
+				warning = "WARNING: Expecting images of size " + printArray( EXPECTED_IMAGE_DIMS ) +
+					" but image " + impList[ i ].getTitle() + " has size " + printArray( dims );
+				IJ.error( warning );
+                break;
+			}
+		}
+	}
+}
+
+String printArray( int[] in )
+{
+	out = "( ";
+	for( int i = 0; i < in.length; i++ )
+	{
+		out += in[ i ];
+		if( i < in.length - 1 )
+			out += ", ";
+	}
+	out += " )";
+	return out;
 }
 
 ImagePlus[] loadImages( String selection )
@@ -123,7 +156,7 @@ ImagePlus[] loadImages( String selection )
 }
 
 gd = new GenericDialogPlus( "BigWarp" );
-gd.addFileField( "Landmarks: ", IJ.getDir("plugins") + "/elm/lm-em-landmarks.csv" );
+gd.addFileField( "Landmarks: ", IJ.getDir("plugins") + "elm/lm-em-landmarks.csv" );
 gd.addFileField( "Light template: ", "" );
 gd.addCheckbox( "Auto discover", true );
 gd.showDialog();
@@ -146,6 +179,8 @@ if (!gd.wasCanceled())
             impList = loadImages( fnMoving );
         else
             impList = new ImagePlus[]{ IJ.openImage( fnMoving ) };
+
+        checkInputImages( impList );
 
         if ( impList != null && impList.length > 0 && impList[ 0 ] != null )
         {
