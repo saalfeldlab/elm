@@ -39,3 +39,13 @@ Two alternatives:
       3. the same size as the selected image.
     
     This is the way to open multi-channel exports that come out as separate files.
+
+## Compartment labels
+As of 20 January 2016, ELM includes pointers to compartment labels maps.
+Label maps are not loaded by default, but one can be selected with the radio buttons:
+* DPX - a label map internal to Janelia.
+* VFB - labels from the [Virtual fly brain](https://github.com/VirtualFlyBrain/DrosAdultBRAINdomains)
+  * These were manually registered to the high-resolution template by John Bogovic (improvements welcome).
+
+If a label map is selected, it is visible by default.  This can be changed using the *Visibility and Grouping* dialog (F6 (moving) and F7 (target)).  See details on the [big data viewer page](http://fiji.sc/BigDataViewer#Displaying_Multiple_Sources).
+  
