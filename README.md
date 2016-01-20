@@ -48,4 +48,5 @@ Label maps are not loaded by default, but one can be selected with the radio but
   * These were manually registered to the high-resolution template by John Bogovic (improvements welcome).
 
 If a label map is selected, it is visible by default.  This can be changed using the *Visibility and Grouping* dialog (F6 (moving) and F7 (target)).  See details on the [big data viewer page](http://fiji.sc/BigDataViewer#Displaying_Multiple_Sources).
-  
+
+Pressing the 'L' key will display the name of the label under the mouse cursor.
