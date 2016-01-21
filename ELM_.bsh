@@ -226,7 +226,7 @@ boolean isConsistentSize( String f, int nx, int ny, int nz, String ext )
                 ( !reader.isRGB() ) && 
                 ( reader.getSizeX() == nx ) && 
                 ( reader.getSizeY() == ny ) &&
-                ( reader.getSizeZ() == nz ) &&
+                ( reader.getSizeZ() == nz || reader.getImageCount() == nz ) &&
                 ( reader.getSizeC() == 1 );
 
         reader.close();
