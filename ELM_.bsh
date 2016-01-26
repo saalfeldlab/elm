@@ -392,7 +392,7 @@ if (!gd.wasCanceled())
 
     // These two lines can remain as they are if elm is cloned into your
     // home directory.  Otherwise, they will need modification. 
-    FAFB_XML = IJ.getDir("plugins") + "/elm/catmaid-fafb00-v9.1-align-tps.xml";
+    FAFB_XML = IJ.getDir("plugins") + "/elm/catmaid-fafb00-v11-align-tps.xml";
 
     try
     {
