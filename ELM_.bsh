@@ -24,6 +24,7 @@ import java.util.Properties;
 
 import javax.swing.ActionMap;
 import javax.swing.InputMap;
+import javax.swing.Timer;
 
 import fiji.util.gui.GenericDialogPlus;
 import loci.formats.FormatException;
@@ -112,6 +113,111 @@ public static class LabelNameOverlayFetcher
         else
             return "< no label >";
     }
+}
+
+public static class LabelOverlayAnimator implements OverlayAnimator, MouseMotionListener
+{
+    Font font;
+    BigWarpViewerFrame frame;
+    LabelNameOverlayFetcher fetcher;
+    Timer timer;
+
+    String text;
+    boolean isVisible;
+
+    int x;
+    int y;
+
+    LabelOverlayAnimator( BigWarpViewerFrame frame, LabelNameOverlayFetcher fetcher )
+    {
+		this.frame = frame;
+		this.fetcher = fetcher;
+		this.font = new Font( "Monospaced", Font.PLAIN, 14 ); 
+		text = "";
+		isVisible = false;
+		
+		timer = new Timer( 200, new ActionListener()
+		{
+			public void actionPerformed( ActionEvent e )
+			{
+				synchronized( this )
+				{
+					isVisible = false;
+				}
+				timer.stop();
+			}
+		});
+		
+		this.frame.getViewerPanel().addOverlayAnimator( this );
+		this.frame.getViewerPanel().getDisplay().addHandler( this );
+    } 
+
+    public synchronized void changeText( String text )
+	{
+		this.text = text;
+	}
+	
+	public synchronized void setVisible( boolean visible )
+	{
+		if( visible ) 
+		{
+			timer.stop();
+			isVisible = visible;
+			changeText( fetcher.getName() );
+            this.frame.getViewerPanel().getDisplay().repaint();
+		}
+		else
+		{
+			timer.start();
+		}
+	}
+
+	public boolean isComplete()
+	{
+		// this animator should not be removed, ever.
+		return false;
+	}
+
+
+	public boolean requiresRepaint()
+	{
+		return isVisible;
+	}
+
+	public void paint( Graphics2D g, long time )
+	{
+		if ( !requiresRepaint() || text.isEmpty())
+			return;
+
+		frc = g.getFontRenderContext();
+
+		layout = new TextLayout( text, font, frc );
+		bounds = layout.getBounds();
+
+		fm = g.getFontMetrics( font );
+		strwidth = fm.stringWidth( text );
+		fonthgt = fm.getHeight();
+		
+		tx = (int)( x - bounds.getWidth() / 2 );
+		ty = y - 12;
+		
+		g.setColor( new Color( 1f, 1f, 1f, 0.7f ) );
+		g.fillRect( tx - 1, ty - fonthgt + 2, strwidth + 2, fonthgt);
+
+		g.setColor( new Color( 0f, 0f, 0f, 1f ) );
+		layout.draw( g, tx, ty );
+	}
+
+	public void mouseDragged( MouseEvent e ){}
+
+	public void mouseMoved( MouseEvent e )
+	{
+		x = e.getX();
+		y = e.getY();
+		
+		if( isVisible )
+			changeText( fetcher.getName() );
+	}
 }
 
 public class ShowMessageAction extends AbstractNamedAction
@@ -427,15 +533,21 @@ if (!gd.wasCanceled())
             if ( !fnLandmarks.isEmpty() )
                 bw.getLandmarkPanel().getTableModel().load( new File( fnLandmarks ) );
 
-            LabelNameOverlayFetcher lnoaP;
-            LabelNameOverlayFetcher lnoaQ;
+            LabelOverlayAnimator toaP;
+            LabelOverlayAnimator toaQ;
+            LabelNameOverlayFetcher lnofP;
+            LabelNameOverlayFetcher lnofQ;
             if( !fnCompartmentNames.isEmpty() )
             {
-                lnoaP = addLabelNameOverlay( bw.getViewerFrameP().getViewerPanel(), bw, fnCompartmentNames, labelSourceIndex );
-                lnoaQ = addLabelNameOverlay( bw.getViewerFrameQ().getViewerPanel(), bw, fnCompartmentNames, labelSourceIndex );
+                lnofP = addLabelNameOverlay( bw.getViewerFrameP().getViewerPanel(), bw, fnCompartmentNames, labelSourceIndex );
+                lnofQ = addLabelNameOverlay( bw.getViewerFrameQ().getViewerPanel(), bw, fnCompartmentNames, labelSourceIndex );
 
-                addLabelActions( bw.getViewerFrameP(), lnoaP );
-                addLabelActions( bw.getViewerFrameQ(), lnoaQ );
+
+                toaP = new LabelOverlayAnimator( bw.getViewerFrameP(), lnofP );
+                toaQ = new LabelOverlayAnimator( bw.getViewerFrameQ(), lnofQ );
+
+//                addLabelActions( bw.getViewerFrameP(), lnoaP );
+//                addLabelActions( bw.getViewerFrameQ(), lnoaQ );
             }else
             {
                 lnoaP = null;
@@ -543,6 +655,25 @@ if (!gd.wasCanceled())
 
                         System.out.println( url );
 
+                    } 
+                    else if ( e.getKeyCode() == KeyEvent.VK_L )
+                    {
+                        if( e.getID() == KeyEvent.KEY_PRESSED )
+                        {
+                            if( toaP != null )
+                                toaP.setVisible( true );
+
+                            if( toaQ != null )
+                                toaQ.setVisible( true );
+                        }
+                        else if( e.getID() == KeyEvent.KEY_RELEASED )
+                        {
+                            if( toaP != null )
+                                toaP.setVisible( false );
+
+                            if( toaQ != null )
+                                toaQ.setVisible( false );
+                        }
                     }
                     return true;
                 }
