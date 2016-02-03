@@ -66,14 +66,22 @@ WIDTH  = 1024;
 HEIGHT = 1024;
 
 DEFAULT_LANDMARKS = "/groups/saalfeld/public/flytem-eml/lm-em-landmarks.csv";
-DEFAULT_IMAGE = "/groups/saalfeld/public/flytem-eml/DPX_Standard2013/JFRC2013.tif";
 
-DPX_LABELS_IMAGE = "/groups/saalfeld/public/vfb/DPX_Standard2013_Mask20131111_labels.tif";
-DPX_LABELS_NAMES = "/groups/saalfeld/public/vfb/DPX_Standard2013_Mask20131111.csv";
+IMG_BASEDIR_LINUX   = "/groups/saalfeld/public/flytem-eml/DPX_Standard2013/";
+IMG_BASEDIR_MAC     = "/Volumes/saalfeldpublic/flytem-eml/DPX_Standard2013/";
+IMG_BASEDIR_WINDOWS = "\\\\dm11\\saalfeldpublic\\flytem-eml\\DPX_Standard2013\\";
+DEFAULT_IMAGE = "JFRC2013.tif";
+
+LABEL_BASEDIR_LINUX   = "/groups/saalfeld/public/vfb/";
+LABEL_BASEDIR_MAC     = "/Volumes/saalfeldpublic/vfb/";
+LABEL_BASEDIR_WINDOWS = "\\\\dm11\\saalfeldpublic\\vfb\\";
+
+DPX_LABELS_IMAGE = "DPX_Standard2013_Mask20131111_labels.tif";
+DPX_LABELS_NAMES = "DPX_Standard2013_Mask20131111.csv";
 DPX_LABELS_ID ="DPX_Standard2013_Mask20131111";
 
-VFB_LABELS_IMAGE = "/groups/saalfeld/public/vfb/JFRCtempate2010.mask130819_Original_warp.tif";
-VFB_LABELS_NAMES = "/groups/saalfeld/public/vfb/Original_Index.csv";
+VFB_LABELS_IMAGE = "JFRCtempate2010.mask130819_Original_warp.tif";
+VFB_LABELS_NAMES = "Original_Index.csv";
 VFB_LABELS_ID = "VFB";
 
 EXPECTED_IMAGE_DIMS = new int[]{ 1450, 725, 436 };
@@ -462,9 +470,49 @@ ImagePlus[] loadImages( String selection )
     return out;
 }
 
+try
+{
+
+sys_default_image = "";
+labeldir = "";
+
+if( IJ.isLinux() )
+{
+    System.out.println( "is linux" );
+    File bd = new File( IMG_BASEDIR_LINUX );
+    if( !bd.exists()){
+        IJ.error( "Missing a label file.\n Make sure the Janelia shared filesystem is visible." );
+        return;
+    }
+    sys_default_image = IMG_BASEDIR_LINUX + DEFAULT_IMAGE;
+    labeldir = LABEL_BASEDIR_LINUX;
+}
+else if( IJ.isMacOSX() )
+{
+    System.out.println( "is mac" );
+    File bd = new File( IMG_BASEDIR_MAC);
+    if( !bd.exists()){
+        IJ.error( "Missing a label file.\n  Connect to smb://dm11/saalfeldpublic and try again." );
+        return;
+    }
+    sys_default_image = IMG_BASEDIR_MAC + DEFAULT_IMAGE;
+    labeldir = LABEL_BASEDIR_MAC;
+}
+else if( IJ.isWindows() )
+{
+    System.out.println( "is windows" );
+    File bd = new File( IMG_BASEDIR_WINDOWS );
+    if( !bd.exists()){
+        IJ.error( "Missing a label file.\n  Connect to \\\\dm11\\saalfeldlab and try again." );
+        return;
+    }
+    sys_default_image = IMG_BASEDIR_LINUX + DEFAULT_IMAGE;
+    labeldir = LABEL_BASEDIR_WINDOWS;
+}
+
 gd = new GenericDialogPlus( "BigWarp" );
 gd.addFileField( "Landmarks: ", IJ.getDir("plugins") + "elm/lm-em-landmarks.csv" );
-gd.addFileField( "Light template: ", DEFAULT_IMAGE );
+gd.addFileField( "Light template: ", sys_default_image );
 gd.addCheckbox( "Auto discover", true );
 gd.addRadioButtonGroup( "Label", new String[]{"None", "DPX", "VFB"}, 1, 3, "None" );
 gd.showDialog();
@@ -484,15 +532,15 @@ if (!gd.wasCanceled())
     if( labelOption.equals( "DPX" ))
     {
         loadLabels = true;
-        fnCompartmentImage = DPX_LABELS_IMAGE;
-        fnCompartmentNames = DPX_LABELS_NAMES;
+        fnCompartmentImage = labeldir + DPX_LABELS_IMAGE;
+        fnCompartmentNames = labeldir + DPX_LABELS_NAMES;
         compartmentId = DPX_LABELS_ID;
     }
     else if( labelOption.equals( "VFB" ))
     {
         loadLabels = true;
-        fnCompartmentImage = VFB_LABELS_IMAGE;
-        fnCompartmentNames = VFB_LABELS_NAMES;
+        fnCompartmentImage = labeldir + VFB_LABELS_IMAGE;
+        fnCompartmentNames = labeldir + VFB_LABELS_NAMES;
         compartmentId = VFB_LABELS_ID;
     }
 
@@ -692,4 +740,10 @@ if (!gd.wasCanceled())
     {
         e.printStackTrace();
     }
+}
+
+}
+catch( Exception e )
+{ 
+    e.printStackTrace();
 }
