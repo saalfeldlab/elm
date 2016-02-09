@@ -27,6 +27,10 @@ Two alternatives:
   Download the [zipped archive](https://github.com/saalfeldlab/elm/archive/master.zip) and extract into
   
   ```bash
+  <your fiji folder>/plugins/elm-master/
+  ```
+  or
+  ```bash
   <your fiji folder>/plugins/elm/
   ```
   
