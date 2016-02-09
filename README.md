@@ -6,8 +6,10 @@ FAFB (internal to Janelia only).  Any images in the space of the fly light nc82 
 The transformation was generated manually using [bigwarp](http://fiji.sc/BigWarp) which in turn is built upon
 [BigDataViewer](http://fiji.sc/BigDataViewer).
 
-Pressing the 'K' key will open the FAFB stack in [CATMAID](http://catmaid.readthedocs.org/en/stable/) at the 
-location displayed in the current window.
+
+
+## Announcements
+* ``2016-Feb-09`` - ELM now uses FAFB v11 by default.
 
 ## Installation
 Two alternatives:
@@ -27,7 +29,7 @@ Two alternatives:
   ```bash
   <your fiji folder>/plugins/elm/
   ```
-
+  
 ## Running
 * After installation, the script can be accessed from the Fiji menu by:  
   * Plugins > elm > ELM
@@ -40,6 +42,12 @@ Two alternatives:
     
     This is the way to open multi-channel exports that come out as separate files.
 
+## Hotkeys
+The 'K' key will open the FAFB stack in [CATMAID](http://catmaid.readthedocs.org/en/stable/) at the 
+location displayed in the current window.
+
+The 'L' key (press and hold ) will display the name of the label under the mouse cursor if compartment labels are loaded.
+
 ## Compartment labels
 As of 20 January 2016, ELM includes pointers to compartment labels maps.
 Label maps are not loaded by default, but one can be selected with the radio buttons:
@@ -48,5 +56,3 @@ Label maps are not loaded by default, but one can be selected with the radio but
   * These were manually registered to the high-resolution template by John Bogovic (improvements welcome).
 
 If a label map is selected, it is visible by default.  This can be changed using the *Visibility and Grouping* dialog (F6 (moving) and F7 (target)).  See details on the [big data viewer page](http://fiji.sc/BigDataViewer#Displaying_Multiple_Sources).
-
-Pressing the 'L' key will display the name of the label under the mouse cursor.
