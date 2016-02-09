@@ -86,21 +86,42 @@ VFB_LABELS_ID = "VFB";
 
 EXPECTED_IMAGE_DIMS = new int[]{ 1450, 725, 436 };
 
+public String findElmDir()
+{
+    elmgitdir =  IJ.getDir("plugins") + "elm";
+    elmzipdir =  IJ.getDir("plugins") + "elm-master";
+
+    iselmgitdir = new File( elmgitdir ).exists();
+    iselmzipdir = new File( elmzipdir ).exists();
+
+    if( iselmgitdir && iselmzipdir )
+    {
+        IJ.error( "Warning: Found two elm folders!\nUsing:\n" + elmgitdir );
+        return elmgitdir;
+    }
+    else if( iselmgitdir )
+        return elmgitdir;
+    else if( iselmzipdir )
+        return elmzipdir;
+    else
+    {
+        IJ.error( "Could not find an elm folder in " + IJ.getDir("plugins")
+            + "\nPlease check that this script is in a folder called 'elm.'");
+        return "";
+    }
+}
+
 public String findPath( String[] label_dir_list, String file_name )
 {
 String result = "";
 for( String ld : label_dir_list )
 {
-    //System.out.println( ld );
-    //IJ.showMessage( ld );
 
     if( new File( ld ).exists())
     {
     	fimg = new File( ld + file_name );
 	System.out.println( fimg);
     	if( fimg.exists() ){
-     		//IJ.showMessage( "found " + fimg );
-     		System.out.println( "found" );
      		result = ld + file_name;
      		break;
     	}
@@ -541,7 +562,12 @@ try
 {
 
 sys_default_image = "";
-elmdir =  IJ.getDir("plugins") + "elm" + File.separator;
+
+elmdir = findElmDir();
+if( elmdir.isEmpty() )
+    return;
+else
+    elmdir = elmdir + File.separator;
 
 imgDirList = new String[]{ elmdir, IMG_BASEDIR_LINUX,  IMG_BASEDIR_MAC, IMG_BASEDIR_WINDOWS };
 sys_default_image = findPath( imgDirList, DEFAULT_IMAGE );
@@ -552,7 +578,6 @@ labelDirList = new String[]{ elmdir, LABEL_BASEDIR_LINUX,  LABEL_BASEDIR_MAC, LA
 // Fiji plugins directory.  Otherwise, they will need modification. 
 defaultLandmarksFile = elmdir + DEFAULT_LANDMARKS;
 FAFB_XML = elmdir +"catmaid-fafb00-v11-align-tps.xml";
-System.out.println( "FAFB V11");
 
 gd = new GenericDialogPlus( "BigWarp" );
 gd.addFileField( "Landmarks: ", defaultLandmarksFile );
