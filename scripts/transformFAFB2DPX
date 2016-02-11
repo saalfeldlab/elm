@@ -1,0 +1,5 @@
+#!/bin/bash
+
+FAFB2DPX_pts="/groups/saalfeld/public/vfb/lm-em-landmarks.csv"
+srcjar="/groups/saalfeld/home/bogovicj/dev/bdv/elm/target/elm-0.0.1-jar-with-dependencies.jar"
+java -Xmx2000m -jar $srcjar "$FAFB2DPX_pts" "$@" 

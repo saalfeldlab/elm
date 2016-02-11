@@ -1,0 +1,4 @@
+#!/bin/bash
+
+srcjar="/groups/saalfeld/home/bogovicj/dev/bdv/elm/target/elm-0.0.1-jar-with-dependencies.jar"
+java -Xmx2000m -jar $srcjar "$@"
