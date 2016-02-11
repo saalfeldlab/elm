@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>sc.fiji</groupId>
+		<artifactId>pom-fiji</artifactId>
+		<version>21.0.0</version>
+		<relativePath />
+	</parent>
+
+	<artifactId>elm</artifactId>
+	<version>0.0.1</version>
+
+	<name>bigwarp_fiji</name>
+	<description>A tool for manual pointwise deformable registration using bigdataviewer.</description>
+	<url>http://imagej.net/BigWarp</url>
+	<inceptionYear>2015</inceptionYear>
+	<licenses>
+		<license>
+			<name>GNU General Public License v2+</name>
+			<url>http://www.gnu.org/licenses/gpl.html</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+	
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifest>
+							<mainClass>org.janelia.nblastFly.NeuronTransformTPS</mainClass>
+						</manifest>
+					</archive>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+	<scm>
+		<connection>scm:git:git://github.com/saalfeldlab/bigwarp</connection>
+		<developerConnection>scm:git:git@github.com:saalfeldlab/bigwarp</developerConnection>
+		<tag>HEAD</tag>
+		<url>https://github.com/saalfeldlab/bigwarp</url>
+	</scm>
+	<issueManagement>
+		<system>GitHub Issues</system>
+		<url>https://github.com/saalfeldlab/bigwarp/issues</url>
+	</issueManagement>
+	<ciManagement>
+		<system>Jenkins</system>
+		<url>http://jenkins.imagej.net/job/bigwarp/</url>
+	</ciManagement>
+
+	<repositories>
+		<repository>
+			<id>imagej.public</id>
+			<url>http://maven.imagej.net/content/groups/public</url>
+		</repository>
+	</repositories>
+
+	<dependencies>
+		<dependency>
+			<groupId>au.com.bytecode</groupId>
+			<artifactId>opencsv</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>jitk</groupId>
+			<artifactId>jitk-tps</artifactId>
+			<version>2.0.0</version>
+		</dependency>
+	</dependencies>
+</project>
