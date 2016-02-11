@@ -15,13 +15,16 @@ public class NeuronTransformTPS
 
 	public static void main( String[] args ) throws IOException
 	{
-		String swcPathOut = args[ 0 ];
+		System.out.println( args.length );
+		
+		String landmarkFile = args[ 0 ];
 		String swcPath = args[ 1 ];
-		String landmarkFile = args[ 2 ];
-
-		System.out.println( "swcPathOut " + swcPathOut );
-		System.out.println( "swcPath " + swcPath );
-		System.out.println( "landmarkFile " + landmarkFile );
+		
+		String swcPathOut;
+		if( args.length >= 3 )
+			swcPathOut = args[ 2 ];
+		else
+			swcPathOut = swcPath.replaceFirst( ".swc", "_xfm.swc" );
 
 		System.out.println( "reading");
 		ArrayList< NeuronNode > skeleton = NeuronReaderWriterSWC.read( swcPath );
