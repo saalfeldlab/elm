@@ -1,5 +1,6 @@
 package org.janelia.io;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,8 +34,7 @@ public class NeuronReaderWriterSWC
 	public static ArrayList< NeuronNode > read( String path ) throws IOException
 	{
 		ArrayList< NeuronNode > skeleton = new ArrayList< NeuronNode >();
-
-		List< String > lines = Files.readAllLines( Paths.get( path ) );
+		List< String > lines = Files.readAllLines( Paths.get( new File( path ).getAbsolutePath() ) );
 
 		for ( String s : lines )
 		{
@@ -71,8 +71,7 @@ public class NeuronReaderWriterSWC
 					Integer.toString( n.parent ) + 
 					NEWLINE;
 		}
-
-		return Files.write( Paths.get( path ), out.getBytes() );
+		return Files.write( Paths.get( new File( path ).getAbsolutePath() ), out.getBytes() );
 		
 	}
 }

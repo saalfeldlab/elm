@@ -19,9 +19,13 @@ public class NeuronTransformTPS
 		String swcPath = args[ 1 ];
 		String landmarkFile = args[ 2 ];
 
+		System.out.println( "swcPathOut " + swcPathOut );
+		System.out.println( "swcPath " + swcPath );
+		System.out.println( "landmarkFile " + landmarkFile );
+
 		System.out.println( "reading");
 		ArrayList< NeuronNode > skeleton = NeuronReaderWriterSWC.read( swcPath );
-		
+
 		/* Read landmarks and build the transform.
 		 * 
 		 * Note: loading the landmarks with the LandmarkTableModel builds a transform
@@ -31,7 +35,6 @@ public class NeuronTransformTPS
 		LandmarkTableModelLight ltm = new LandmarkTableModelLight( 3 ); // 3-D images
 		ltm.load( new File( landmarkFile ) );
 		ThinPlateR2LogRSplineKernelTransform xfm = ltm.getTransform();
-		System.out.println( xfm );
 		
 		/* transform the points in the input skeleton and drop them in a new one */
 		ArrayList< NeuronNode > skeletonXfm = new ArrayList< NeuronNode >();
@@ -41,10 +44,10 @@ public class NeuronTransformTPS
 			double[] ptxfm = xfm.apply( new double[]{ n.x, n.y, n.z } );
 			skeletonXfm.add( new NeuronNode( n, ptxfm[ 0 ], ptxfm[ 1 ], ptxfm[ 2 ] ));
 		}
-		
+
 		System.out.println( "writing");
 		NeuronReaderWriterSWC.write( swcPathOut, skeletonXfm );
-		
+
 		System.out.println( "done");
 		System.exit( 0 );
 	}
