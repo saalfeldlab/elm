@@ -18,10 +18,6 @@ public class NeuronTransformTPS
 		String swcPathOut = args[ 0 ];
 		String swcPath = args[ 1 ];
 		String landmarkFile = args[ 2 ];
-		
-//		String swcPath = "/groups/saalfeld/home/bogovicj/projects/nblast-fly/61221.swc";
-//		String swcPathOut = "/groups/saalfeld/home/bogovicj/projects/nblast-fly/face.swc";
-//		String landmarkFile  = "/groups/saalfeld/home/bogovicj/dev/bdv/elm/lm-em-landmarks.csv";
 
 		System.out.println( "reading");
 		ArrayList< NeuronNode > skeleton = NeuronReaderWriterSWC.read( swcPath );
