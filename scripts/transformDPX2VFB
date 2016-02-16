@@ -1,5 +1,5 @@
 #!/bin/bash
 
 DPX2VFB_pts="/groups/saalfeld/public/vfb/landmarks_vfb-2-dpx.csv"
-srcjar="/groups/saalfeld/home/bogovicj/dev/bdv/elm/target/elm-0.0.1-jar-with-dependencies.jar"
+srcjar="/groups/saalfeld/home/bogovicj/dev/bdv/elm-nblast/target/elm-0.0.2-jar-with-dependencies.jar"
 java -Xmx2000m -jar $srcjar "$DPX2VFB_pts" "$@" 
