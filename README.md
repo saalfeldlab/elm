@@ -10,6 +10,7 @@ The transformation was generated manually using [bigwarp](http://fiji.sc/BigWarp
 
 ## Announcements
 * ``2016-Feb-09`` - ELM now uses FAFB v11 by default.
+* ``2016-Feb-22`` - Landmark improvements thanks to Davi Bock.
 
 ## Installation
 Two alternatives:
