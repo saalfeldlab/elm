@@ -698,6 +698,7 @@ if (!gd.wasCanceled())
             // repaint
             bw.getViewerFrameP().getViewerPanel().requestRepaint();
             bw.getViewerFrameQ().getViewerPanel().requestRepaint();
+            bw.getLandmarkFrame().repaint();
 
 
             keyProcessor = new KeyEventPostProcessor()
