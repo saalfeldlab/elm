@@ -708,6 +708,9 @@ if (!gd.wasCanceled())
                 {
                     if ( e.getID() == KeyEvent.KEY_PRESSED && e.getKeyCode() == KeyEvent.VK_K )
                     {
+                        xr = 4.0;
+                        yr = 4.0;
+                        zr = 35.0;
                         panel = bw.getViewerFrameQ().getViewerPanel();
                         center = new RealPoint( 3 );
                         panel.displayToGlobalCoordinates( 0.5 * panel.getWidth(), 0.5 * panel.getHeight(), center );
@@ -719,19 +722,12 @@ if (!gd.wasCanceled())
                         dy = y - center.getDoublePosition( 1 );
                         dz = z - center.getDoublePosition( 2 );
 
-                        d = Math.sqrt( dx * dx + dy * dy + dz * dz );
-
+                        d = 0.5 * Math.sqrt( dx * dx / xr + dy * dy / yr + dz * dz / zr );
                         s = Math.log( d ) / Math.log( 2 );
-
-                        z /= 10;
-
-                        x *= 4;
-                        y *= 4;
-                        z *= 35;
 
 						df = new DecimalFormat( "0.000000" );
 						dfshort = new DecimalFormat( "0.0" );
-						url = "https://neuropil.janelia.org/tracing/fafb/v11/?pid=1&sid0=5&xp=" + df.format( x ) +
+						url = "https://neuropil.janelia.org/tracing/fafb/v12/?pid=1&sid0=5&xp=" + df.format( x ) +
 						 "&yp=" + df.format( y ) + 
 						 "&zp=" + df.format( z ) + 
 						 "&s0=" + dfshort.format( s ) + "&tool=navigator";
