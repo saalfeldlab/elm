@@ -575,7 +575,7 @@ labelDirList = new String[]{ elmdir, LABEL_BASEDIR_LINUX,  LABEL_BASEDIR_MAC, LA
 // These two lines can remain as they are if elm is cloned into your
 // Fiji plugins directory.  Otherwise, they will need modification. 
 defaultLandmarksFile = elmdir + DEFAULT_LANDMARKS;
-FAFB_XML = elmdir +"catmaid-fafb00-v12-align-tps.xml";
+FAFB_XML = elmdir +"catmaid-fafb00-v13-align-tps.xml";
 
 gd = new GenericDialogPlus( "BigWarp" );
 gd.addFileField( "Landmarks: ", defaultLandmarksFile );
