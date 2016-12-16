@@ -37,9 +37,7 @@ import bdv.tools.InitializeViewerState;
 import bdv.spimdata.SpimDataMinimal;
 import bdv.tools.brightness.RealARGBColorConverterSetup;
 import bdv.tools.transformation.TransformedSource;
-import bdv.util.AbstractNamedAction;
 import bdv.util.KeyProperties;
-import bdv.util.AbstractNamedAction.NamedActionAdder;
 import bdv.util.KeyProperties.KeyStrokeAdder;
 import bdv.viewer.BigWarpViewerPanel;
 import bdv.viewer.DisplayMode;
@@ -61,6 +59,7 @@ import net.imglib2.RealRandomAccess;
 import net.imglib2.display.RealLUTARGBColorConverter;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
+import org.scijava.ui.behaviour.util.AbstractNamedAction;
 
 WIDTH  = 1024;
 HEIGHT = 1024;
@@ -347,8 +346,7 @@ void addLabelActions( BigWarpViewerFrame viewer, LabelNameOverlayFetcher animato
     map.put( "DISPLAY LABEL NAME", new String[]{ "L" } );
 
     actionMap = new ActionMap();
-    actionAdder = new NamedActionAdder( actionMap );
-    actionAdder.put( new ShowMessageAction( "DISPLAY LABEL NAME", viewer.getViewerPanel(), animator ));
+    new ShowMessageAction( "DISPLAY LABEL NAME", viewer.getViewerPanel(), animator ).put( actionMap );
 
     keybindings = viewer.getKeybindings();
 
@@ -643,7 +641,7 @@ if (!gd.wasCanceled())
 
 
             bw = new BigWarp( data, new File( fnMoving ).getName(), new ProgressWriterConsole() );
-			bw.setImageJInstance( IJ.getInstance() );
+			//bw.setImageJInstance( IJ.getInstance() );
 
             if ( !fnLandmarks.isEmpty() )
                 bw.getLandmarkPanel().getTableModel().load( new File( fnLandmarks ) );
