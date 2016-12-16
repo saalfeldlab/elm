@@ -587,7 +587,7 @@ gd.showDialog();
 
 if (!gd.wasCanceled())
 {
-    System.out.println( "V12" );
+    System.out.println( "V13" );
     fnLandmarks = gd.getNextString();
     fnMoving = gd.getNextString();
     autoDiscover = gd.getNextBoolean();
@@ -641,7 +641,6 @@ if (!gd.wasCanceled())
 
 
             bw = new BigWarp( data, new File( fnMoving ).getName(), new ProgressWriterConsole() );
-			//bw.setImageJInstance( IJ.getInstance() );
 
             if ( !fnLandmarks.isEmpty() )
                 bw.getLandmarkPanel().getTableModel().load( new File( fnLandmarks ) );
@@ -655,12 +654,9 @@ if (!gd.wasCanceled())
                 lnofP = addLabelNameOverlay( bw.getViewerFrameP().getViewerPanel(), bw, fnCompartmentNames, labelSourceIndex );
                 lnofQ = addLabelNameOverlay( bw.getViewerFrameQ().getViewerPanel(), bw, fnCompartmentNames, labelSourceIndex );
 
-
                 toaP = new LabelOverlayAnimator( bw.getViewerFrameP(), lnofP );
                 toaQ = new LabelOverlayAnimator( bw.getViewerFrameQ(), lnofQ );
 
-//                addLabelActions( bw.getViewerFrameP(), lnoaP );
-//                addLabelActions( bw.getViewerFrameQ(), lnoaQ );
             }else
             {
                 lnoaP = null;
@@ -789,8 +785,6 @@ if (!gd.wasCanceled())
 			bw.addKeyEventPostProcessor( keyProcessor );
 
 			bw.toggleMovingImageDisplay();
-            //bw.restimateTransformation();
-            //bw.setIsMovingDisplayTransformed( true );
             bw.getViewerFrameQ().getViewerPanel().setDisplayMode( DisplayMode.FUSED );
             bw.matchOtherViewerPanelToActive();
         }
