@@ -198,6 +198,10 @@ public static class LabelNameOverlayFetcher
 
     String getName()
     {
+
+        if( index < 0 )
+            return "< no label >";
+
         srcra = bw.getSources().get( index ).getSpimSource().getInterpolatedSource( 0, 0, Interpolation.NEARESTNEIGHBOR ).realRandomAccess();
 
         panel.getGlobalMouseCoordinates( mousePoint );
@@ -588,6 +592,7 @@ gd.showDialog();
 if (!gd.wasCanceled())
 {
     System.out.println( "V13" );
+
     fnLandmarks = gd.getNextString();
     fnMoving = gd.getNextString();
     autoDiscover = gd.getNextBoolean();
@@ -628,6 +633,7 @@ if (!gd.wasCanceled())
         {
 
             data = null;
+            labelSourceIndex = -1;
             if( !fnCompartmentNames.isEmpty() && loadLabels )
             {
                 BigWarpData dataRaw = BigWarpInit.createBigWarpDataFromImagePlusXML( impList, FAFB_XML );
