@@ -695,11 +695,6 @@ if (!gd.wasCanceled())
             location.setLocation( location.x + WIDTH, location.y );
             bw.getLandmarkPanel().setLocation( location );
 
-            // repaint
-            bw.getViewerFrameP().getViewerPanel().requestRepaint();
-            bw.getViewerFrameQ().getViewerPanel().requestRepaint();
-            bw.getLandmarkFrame().repaint();
-
 
             keyProcessor = new KeyEventPostProcessor()
             {
@@ -792,7 +787,31 @@ if (!gd.wasCanceled())
 
 			bw.toggleMovingImageDisplay();
             bw.getViewerFrameQ().getViewerPanel().setDisplayMode( DisplayMode.FUSED );
+
+
+            /*
+             * bring the moving viewer to the front and make it active
+             * So that 'matchOtherViewerPanelToActive' below will work
+             * unfortunately, it takes lots of effort:
+             * http://stackoverflow.com/questions/309023/how-to-bring-a-window-to-the-front
+             */
+            bw.getViewerFrameQ().setVisible(true);
+            state = bw.getViewerFrameQ().getExtendedState();
+            state &= JFrame.ICONIFIED;
+            bw.getViewerFrameQ().setExtendedState( state );
+            bw.getViewerFrameQ().setAlwaysOnTop(true);
+            bw.getViewerFrameQ().toFront();
+            bw.getViewerFrameQ().requestFocus();
+            bw.getViewerFrameQ().repaint();
+            bw.getViewerFrameQ().setAlwaysOnTop(false);
+
             bw.matchOtherViewerPanelToActive();
+
+            // repaint
+            bw.getViewerFrameP().getViewerPanel().requestRepaint();
+            bw.getViewerFrameQ().getViewerPanel().requestRepaint();
+            bw.getLandmarkFrame().repaint();
+
         }
     }
     catch ( Exception e )
