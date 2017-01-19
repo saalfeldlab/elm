@@ -10,6 +10,7 @@ See also [elmr](https://github.com/jefferis/elmr), for interaction between the C
 
 
 ## Announcements
+* ``2016-Dec-16`` - ELM now uses FAFB v13 by default. 
 * ``2016-Apr-01`` - ELM now uses FAFB v12 by default. 
 * ``2016-Feb-22`` - Landmark improvements thanks to Davi Bock.
 * ``2016-Feb-09`` - ELM now uses FAFB v11 by default.
