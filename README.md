@@ -6,6 +6,7 @@ FAFB (internal to Janelia only).  Any images in the space of the fly light nc82 
 The transformation was generated manually using [bigwarp](http://fiji.sc/BigWarp) which in turn is built upon
 [BigDataViewer](http://fiji.sc/BigDataViewer).
 
+See also [elmr](https://github.com/jefferis/elmr), for interaction between the CATMAID web application and the R Neuroanatomy Toolbox package. 
 
 
 ## Announcements
