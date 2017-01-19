@@ -722,7 +722,7 @@ if (!gd.wasCanceled())
 
 						df = new DecimalFormat( "0.000000" );
 						dfshort = new DecimalFormat( "0.0" );
-						url = "https://neuropil.janelia.org/tracing/fafb/v12/?pid=1&sid0=5&xp=" + df.format( x ) +
+						url = "https://neuropil.janelia.org/tracing/fafb/v13/?pid=1&sid0=5&xp=" + df.format( x ) +
 						 "&yp=" + df.format( y ) + 
 						 "&zp=" + df.format( z ) + 
 						 "&s0=" + dfshort.format( s ) + "&tool=navigator";
