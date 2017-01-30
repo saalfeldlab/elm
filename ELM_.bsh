@@ -57,6 +57,7 @@ import ij.process.LUT;
 import net.imglib2.RealPoint;
 import net.imglib2.RealRandomAccess;
 import net.imglib2.display.RealLUTARGBColorConverter;
+import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import org.scijava.ui.behaviour.util.AbstractNamedAction;
@@ -83,6 +84,14 @@ DPX_LABELS_ID ="DPX_Standard2013_Mask20131111";
 VFB_LABELS_IMAGE = "JFRCtempate2010.mask130819_Original_warp.tif";
 VFB_LABELS_NAMES = "Original_Index.csv";
 VFB_LABELS_ID = "VFB";
+
+DEFAULT_STARTING_XFM_LIGHT = new double[]{
+	0.7066942719116632, 0.0, 0.0, -0.3533471359558007, 
+	0.0, 0.7066942719116632, 0.0, 244.8233264320221, 
+	0.0, 0.0, 0.7066942719116632, -154.05935127674258 };
+
+DEFAULT_STARTING_XFM_EM = new double[]{
+	0.0012364326318905303, 0.0, 0.0, -214.2344789920453, 0.0, 0.0012364326318905303, 0.0, 119.87750692726217, 0.0, 0.0, 0.0012364326318905303, -152.80576324482308 };
 
 EXPECTED_IMAGE_DIMS = new int[]{ 1450, 725, 436 };
 
@@ -673,13 +682,11 @@ if (!gd.wasCanceled())
             int i = 0;
             // correct viewer transform and contrast
             bw.getViewerFrameQ().getViewerPanel().getVisibilityAndGrouping().setCurrentSource( data.targetSourceIndices[ 0 ] );
-            InitializeViewerState.initTransform( bw.getViewerFrameQ().getViewerPanel() );
-            InitializeViewerState.initBrightness( 0.001, 0.999, bw.getViewerFrameQ().getViewerPanel(), bw.getSetupAssignments() );
-            InitializeViewerState.initBrightness( 0.001, 0.999, bw.getViewerFrameP().getViewerPanel(), bw.getSetupAssignments() );
 
-            // set colors of moving and target images
-            bw.getSetupAssignments().getConverterSetups().get( i++ ).setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 255 ) ) );
-            bw.getSetupAssignments().getConverterSetups().get( i ).setColor( new ARGBType( ARGBType.rgba( 0, 255, 0, 255 ) ) );
+
+			
+            // set colors of moving and target images (only edit moving image - catmaid source can't have its color changed )
+            bw.getSetupAssignments().getConverterSetups().get( 0 ).setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 255 ) ) );
 
             // set color of points
             bw.setSpotColor( new Color( 255, 255, 0, 255 ) ); // YELLOW
@@ -763,6 +770,15 @@ if (!gd.wasCanceled())
                     } 
                     else if ( e.getKeyCode() == KeyEvent.VK_L )
                     {
+                    	viewXfmP = new AffineTransform3D();
+						bw.getViewerFrameP().getViewerPanel().getState().getViewerTransform( viewXfmP );
+
+						viewXfmQ = new AffineTransform3D();
+						bw.getViewerFrameQ().getViewerPanel().getState().getViewerTransform( viewXfmQ );
+
+						System.out.println( "Viewer P Xfm: " + viewXfmP );
+						System.out.println( "Viewer Q Xfm: " + viewXfmQ );
+						System.out.println( " " );
                         if( e.getID() == KeyEvent.KEY_PRESSED )
                         {
                             if( toaP != null )
@@ -790,12 +806,22 @@ if (!gd.wasCanceled())
             bw.getViewerFrameQ().getViewerPanel().setDisplayMode( DisplayMode.FUSED );
 
 
+            // set range of label maps if for "DPX" labels if relevant
+            if ( compartmentId == DPX_LABELS_ID )
+            {
+                // Picked this range because it looked reasonable, there may be other / better choices.
+                minMaxGroupLabel = bw.getSetupAssignments().getMinMaxGroups().get( 2 );
+                minMaxGroupLabel.getMinBoundedValue().setCurrentValue( 0.0 );
+                minMaxGroupLabel.getMaxBoundedValue().setCurrentValue( 512.0 );
+            }
+
             /*
              * bring the moving viewer to the front and make it active
              * So that 'matchOtherViewerPanelToActive' below will work
              * unfortunately, it takes lots of effort:
              * http://stackoverflow.com/questions/309023/how-to-bring-a-window-to-the-front
              */
+             /*
             bw.getViewerFrameQ().setVisible(true);
             state = bw.getViewerFrameQ().getExtendedState();
             state &= JFrame.ICONIFIED;
@@ -805,17 +831,32 @@ if (!gd.wasCanceled())
             bw.getViewerFrameQ().requestFocus();
             bw.getViewerFrameQ().repaint();
             bw.getViewerFrameQ().setAlwaysOnTop(false);
-
             bw.matchOtherViewerPanelToActive();
-
+			*/
             // repaint
-            bw.getViewerFrameP().getViewerPanel().requestRepaint();
-            bw.getViewerFrameQ().getViewerPanel().requestRepaint();
+
 
             bw.getLandmarkFrame().pack();
             bw.getLandmarkFrame().repaint();
             bw.getLandmarkFrame().setVisible( true );
 
+			viewXfm = new AffineTransform3D();
+            viewXfm.set( DEFAULT_STARTING_XFM_EM );
+            System.out.println( "Setting xfm view to:\n" + viewXfm );
+
+            xfmBefore = new AffineTransform3D();
+			bw.getViewerFrameQ().getViewerPanel().getState().getViewerTransform( xfmBefore );
+			System.out.println( "xfmBefore:\n" + xfmBefore );
+			
+            //InitializeViewerState.initTransform( bw.getViewerFrameQ().getViewerPanel() );
+            bw.getViewerFrameP().getViewerPanel().setCurrentViewerTransform( viewXfm.copy() );
+			bw.getViewerFrameQ().getViewerPanel().setCurrentViewerTransform( viewXfm.copy() );
+			bw.getViewerFrameP().getViewerPanel().requestRepaint();
+            bw.getViewerFrameQ().getViewerPanel().requestRepaint();
+            
+            xfmAfter = new AffineTransform3D();
+			bw.getViewerFrameQ().getViewerPanel().getState().getViewerTransform( xfmAfter );
+			System.out.println( "xfmAfter:\n" + xfmAfter );
         }
     }
     catch ( Exception e )
@@ -829,3 +870,4 @@ catch( Exception e )
 { 
     e.printStackTrace();
 }
+
