@@ -714,7 +714,22 @@ if (!gd.wasCanceled())
                         xr = 4.0;
                         yr = 4.0;
                         zr = 35.0;
-                        panel = bw.getViewerFrameQ().getViewerPanel();
+                        panel = null;
+                        if( bw.getViewerFrameP().isActive() )
+                        {
+                            panel = bw.getViewerFrameP().getViewerPanel();
+                        }
+                        else if( bw.getViewerFrameQ().isActive() )
+                        {
+                            panel = bw.getViewerFrameQ().getViewerPanel();
+                        }
+                        else
+                        {
+                            System.err.println("Neither viewer panel is active.");
+                            System.err.println("Click a viewer panel and try again.");
+                            return true;
+                        }
+
                         center = new RealPoint( 3 );
                         panel.displayToGlobalCoordinates( 0.5 * panel.getWidth(), 0.5 * panel.getHeight(), center );
                         x = center.getDoublePosition( 0 );
@@ -815,27 +830,6 @@ if (!gd.wasCanceled())
                 minMaxGroupLabel.getMaxBoundedValue().setCurrentValue( 512.0 );
             }
 
-            /*
-             * bring the moving viewer to the front and make it active
-             * So that 'matchOtherViewerPanelToActive' below will work
-             * unfortunately, it takes lots of effort:
-             * http://stackoverflow.com/questions/309023/how-to-bring-a-window-to-the-front
-             */
-             /*
-            bw.getViewerFrameQ().setVisible(true);
-            state = bw.getViewerFrameQ().getExtendedState();
-            state &= JFrame.ICONIFIED;
-            bw.getViewerFrameQ().setExtendedState( state );
-            bw.getViewerFrameQ().setAlwaysOnTop(true);
-            bw.getViewerFrameQ().toFront();
-            bw.getViewerFrameQ().requestFocus();
-            bw.getViewerFrameQ().repaint();
-            bw.getViewerFrameQ().setAlwaysOnTop(false);
-            bw.matchOtherViewerPanelToActive();
-			*/
-            // repaint
-
-
             bw.getLandmarkFrame().pack();
             bw.getLandmarkFrame().repaint();
             bw.getLandmarkFrame().setVisible( true );
@@ -848,7 +842,6 @@ if (!gd.wasCanceled())
 			bw.getViewerFrameQ().getViewerPanel().getState().getViewerTransform( xfmBefore );
 			System.out.println( "xfmBefore:\n" + xfmBefore );
 			
-            //InitializeViewerState.initTransform( bw.getViewerFrameQ().getViewerPanel() );
             bw.getViewerFrameP().getViewerPanel().setCurrentViewerTransform( viewXfm.copy() );
 			bw.getViewerFrameQ().getViewerPanel().setCurrentViewerTransform( viewXfm.copy() );
 			bw.getViewerFrameP().getViewerPanel().requestRepaint();
