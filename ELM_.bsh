@@ -785,7 +785,7 @@ if (!gd.wasCanceled())
             };
 			bw.addKeyEventPostProcessor( keyProcessor );
 
-			bw.toggleMovingImageDisplay();
+            bw.toggleMovingImageDisplay();
             bw.getViewerFrameQ().getViewerPanel().setDisplayMode( DisplayMode.FUSED );
 
 
@@ -810,7 +810,10 @@ if (!gd.wasCanceled())
             // repaint
             bw.getViewerFrameP().getViewerPanel().requestRepaint();
             bw.getViewerFrameQ().getViewerPanel().requestRepaint();
+
+            bw.getLandmarkFrame().pack();
             bw.getLandmarkFrame().repaint();
+            bw.getLandmarkFrame().setVisible( true );
 
         }
     }
