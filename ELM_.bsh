@@ -91,7 +91,7 @@ DEFAULT_STARTING_XFM_LIGHT = new double[]{
 	0.0, 0.0, 0.7066942719116632, -154.05935127674258 };
 
 DEFAULT_STARTING_XFM_EM = new double[]{
-	0.0012364326318905303, 0.0, 0.0, -214.2344789920453, 0.0, 0.0012364326318905303, 0.0, 119.87750692726217, 0.0, 0.0, 0.0012364326318905303, -152.80576324482308 };
+	0.0012364326318905303, 0.0, 0.0, -465.0, 0.0, 0.0012364326318905303, 0.0, -200.0, 0.0, 0.0, 0.0012364326318905303, -152.0 };
 
 EXPECTED_IMAGE_DIMS = new int[]{ 1450, 725, 436 };
 
@@ -785,6 +785,7 @@ if (!gd.wasCanceled())
                     } 
                     else if ( e.getKeyCode() == KeyEvent.VK_L )
                     {
+						/*
                     	viewXfmP = new AffineTransform3D();
 						bw.getViewerFrameP().getViewerPanel().getState().getViewerTransform( viewXfmP );
 
@@ -794,6 +795,7 @@ if (!gd.wasCanceled())
 						System.out.println( "Viewer P Xfm: " + viewXfmP );
 						System.out.println( "Viewer Q Xfm: " + viewXfmQ );
 						System.out.println( " " );
+						*/
                         if( e.getID() == KeyEvent.KEY_PRESSED )
                         {
                             if( toaP != null )
@@ -836,20 +838,10 @@ if (!gd.wasCanceled())
 
 			viewXfm = new AffineTransform3D();
             viewXfm.set( DEFAULT_STARTING_XFM_EM );
-            System.out.println( "Setting xfm view to:\n" + viewXfm );
-
-            xfmBefore = new AffineTransform3D();
-			bw.getViewerFrameQ().getViewerPanel().getState().getViewerTransform( xfmBefore );
-			System.out.println( "xfmBefore:\n" + xfmBefore );
-			
             bw.getViewerFrameP().getViewerPanel().setCurrentViewerTransform( viewXfm.copy() );
 			bw.getViewerFrameQ().getViewerPanel().setCurrentViewerTransform( viewXfm.copy() );
 			bw.getViewerFrameP().getViewerPanel().requestRepaint();
             bw.getViewerFrameQ().getViewerPanel().requestRepaint();
-            
-            xfmAfter = new AffineTransform3D();
-			bw.getViewerFrameQ().getViewerPanel().getState().getViewerTransform( xfmAfter );
-			System.out.println( "xfmAfter:\n" + xfmAfter );
         }
     }
     catch ( Exception e )
