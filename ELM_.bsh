@@ -46,6 +46,8 @@ import bdv.viewer.Interpolation;
 import bdv.viewer.SourceAndConverter;
 import bdv.viewer.animate.AbstractAnimator;
 import bdv.viewer.animate.OverlayAnimator;
+import bdv.viewer.animate.SimilarityTransformAnimator;
+import bdv.viewer.animate.TranslationAnimator;
 import bigwarp.BigWarp;
 import bigwarp.BigWarpInit;
 import bigwarp.BigWarp.BigWarpData;
@@ -94,6 +96,58 @@ DEFAULT_STARTING_XFM_EM = new double[]{
 	0.0012364326318905303, 0.0, 0.0, -465.0, 0.0, 0.0012364326318905303, 0.0, -200.0, 0.0, 0.0, 0.0012364326318905303, -152.0 };
 
 EXPECTED_IMAGE_DIMS = new int[]{ 1450, 725, 436 };
+
+JFrame catmaidUrlFrame = new JFrame("CATMAID URL");
+
+
+public double[] getCatmaidPositionFromUrl()
+{
+	String url = (String)JOptionPane.showInputDialog(
+                catmaidUrlFrame,
+                "Paste CATMAID url here:",
+                "",
+                JOptionPane.OK_CANCEL_OPTION );
+	System.out.println( "url: " + url );
+	catmaidUrlFrame.setVisible( true );
+	if ((url == null) || (url.length() == 0))
+	{
+		return null;
+	}
+
+	String[] urlsplit = url.split( "&" );
+	double[] posScale = new double[ 4 ];
+	int a = 0;
+	for( String s : urlsplit )
+	{
+		if( s.startsWith( "xp=" ))
+		{
+			a += 1;
+			posScale[ 0 ] = Double.parseDouble( s.replaceAll( "xp=", "" ) );
+		}
+		else if( s.startsWith( "yp=" ))
+		{
+			a += 2;
+			posScale[ 1 ] = Double.parseDouble( s.replaceAll( "yp=", "" ) );
+		}
+		else if( s.startsWith( "zp=" ))
+		{
+			a += 4;
+			posScale[ 2 ] = Double.parseDouble( s.replaceAll( "zp=", "" ) );
+		}
+		else if( s.startsWith( "s0=" ))
+		{
+			a += 8;
+			posScale[ 3 ] = Double.parseDouble( s.replaceAll( "s0=", "" ) );
+		}
+	}
+	catmaidUrlFrame.setVisible( false );
+	if( a != 15 )
+	{
+		System.err.println( "invalid url" );
+		return null;
+	}
+	return posScale;
+}
 
 public String findElmDir()
 {
@@ -741,7 +795,7 @@ if (!gd.wasCanceled())
                         dz = z - center.getDoublePosition( 2 );
 
                         d = 0.5 * Math.sqrt( dx * dx / xr + dy * dy / yr + dz * dz / zr );
-                        s = Math.log( d ) / Math.log( 2 );
+                        s = Math.log( d ) / Math.log( 2 ); // s = log_2(d)
 
 						df = new DecimalFormat( "0.000000" );
 						dfshort = new DecimalFormat( "0.0" );
@@ -813,6 +867,59 @@ if (!gd.wasCanceled())
                                 toaQ.setVisible( false );
                         }
                     }
+                    else if (  e.getID() == KeyEvent.KEY_PRESSED && e.getKeyCode() == KeyEvent.VK_C )
+                    {
+						xr = 4.0;
+						yr = 4.0;
+						zr = 35.0;
+
+						position = getCatmaidPositionFromUrl();
+						if( position != null )
+						{
+
+							viewer = bw.getViewerFrameQ().getViewerPanel();
+							/*
+		                    if( bw.getViewerFrameP().isActive() )
+		                    {
+		                        viewer = bw.getViewerFrameP().getViewerPanel();
+		                    }
+		                    else if( bw.getViewerFrameQ().isActive() )
+		                    {
+		                        viewer = bw.getViewerFrameQ().getViewerPanel();
+		                    }
+		                    else
+		                    {
+		                        System.err.println("Neither viewer panel is active.");
+		                        System.err.println("Click a viewer panel and try again.");
+		                        return true;
+		                    }
+							*/
+							pt = new double[ 3 ];
+							pt[ 0 ] = position[ 0 ];
+							pt[ 1 ] = position[ 1 ];
+							pt[ 2 ] = position[ 2 ];
+							catmaidScale = position[ 3 ];
+							bdvScale = ( 1 / xr ) * Math.pow( 2, -catmaidScale );
+
+							center = new double[] { viewer.getWidth() / 2, viewer.getHeight() / 2, 0 };
+							positionXfm = new double[ 3 ];
+							//transform = viewer.getDisplay().getTransformEventHandler().getTransform();
+
+							newXfm = new AffineTransform3D();
+							newXfm.scale( bdvScale );
+							// have it translate the destination point to the center of the window
+							newXfm.apply( position, positionXfm );
+
+							translationVector = new double[ 3 ];
+							for( int d = 0; d < 3; d++ )
+							{
+								translationVector[ d ] = center[ d ] - positionXfm[ d ];
+							}
+							newXfm.translate( translationVector );
+							viewer.animateTransformation( newXfm );
+
+						}
+                    }
                     return true;
                 }
 
@@ -821,7 +928,6 @@ if (!gd.wasCanceled())
 
             bw.toggleMovingImageDisplay();
             bw.getViewerFrameQ().getViewerPanel().setDisplayMode( DisplayMode.FUSED );
-
 
             // set range of label maps if for "DPX" labels if relevant
             if ( compartmentId == DPX_LABELS_ID )
