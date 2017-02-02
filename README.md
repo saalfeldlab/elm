@@ -51,10 +51,9 @@ Two alternatives:
     This is the way to open multi-channel exports that come out as separate files.
 
 ## Hotkeys
-The 'K' key will open the FAFB stack in [CATMAID](http://catmaid.readthedocs.org/en/stable/) at the 
-location displayed in the current window.
-
-The 'L' key (press and hold ) will display the name of the label under the mouse cursor if compartment labels are loaded.
+* The 'K' key will open the FAFB stack in [CATMAID](http://catmaid.readthedocs.org/en/stable/) at the location displayed in the current window.
+* The 'C' key will point ELM viewer to a location in the stack corresponding to a given CATMAID URL.
+* The 'L' key (press and hold ) will display the name of the label under the mouse cursor if compartment labels are loaded.
 
 ## Compartment labels
 As of 20 January 2016, ELM includes pointers to compartment labels maps.
