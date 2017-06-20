@@ -29,7 +29,7 @@ import javax.swing.Timer;
 import fiji.util.gui.GenericDialogPlus;
 import loci.formats.FormatException;
 import loci.formats.ImageReader;
-import au.com.bytecode.opencsv.CSVReader;
+import com.opencsv.CSVReader;
 import bdv.SpimSource;
 import bdv.export.ProgressWriterConsole;
 import bdv.gui.BigWarpViewerFrame;
