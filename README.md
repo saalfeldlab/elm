@@ -1,9 +1,13 @@
 # elm
 Electron-Light Microscopy tools for Janelia
 
+If you are using this tool in your work, please do not forget to cite [John Bogovic's paper](http://ieeexplore.ieee.org/document/7493463/) where he first introduces the underlying [BigWarp](http://fiji.sc/BigWarp) tool:
+
+JA Bogovic, P Hanslovsky, A Wong, S Saalfeld, "Robust registration of calcium images by learned contrast synthesis", In *Biomedical Imaging (ISBI)*, 2016 IEEE 13th International Symposium on, 1123-1126,  DOI: [10.1109/ISBI.2016.7493463](https://doi.org/10.1109/ISBI.2016.7493463).
+
 This project enables visualization of light microscopy in the space of a particular version of 
 FAFB (internal to Janelia only).  Any images in the space of the fly light nc82 template (size: `1450 x 725 x 436` ) can be visualized.  
-The transformation was generated manually using [bigwarp](http://fiji.sc/BigWarp) which in turn is built upon
+The transformation was generated manually using [BigWarp](http://fiji.sc/BigWarp) which in turn is built upon
 [BigDataViewer](http://fiji.sc/BigDataViewer).
 
 See also [elmr](https://github.com/jefferis/elmr), for interaction between the CATMAID web application and the R Neuroanatomy Toolbox package. 
