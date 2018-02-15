@@ -68,7 +68,7 @@ WIDTH  = 1024;
 HEIGHT = 1024;
 
 DEFAULT_LANDMARKS = "lm-em-landmarks.csv";
-DEFAULT_FAFB_XML = "catmaid-fafb00-v13-align-tps-neuropil.xml";
+DEFAULT_FAFB_XML = "catmaid-fafb00-v14-align-tps.xml"
 
 IMG_BASEDIR_LINUX   = "/groups/saalfeld/public/flytem-eml/DPX_Standard2013/";
 IMG_BASEDIR_MAC     = "/Volumes/saalfeldpublic/flytem-eml/DPX_Standard2013/";
