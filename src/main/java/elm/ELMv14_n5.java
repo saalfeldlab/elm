@@ -100,7 +100,7 @@ public class ELMv14_n5
 	public static void main( String[] args ) throws IOException
 	{
 		final String landmarkPath = "/groups/saalfeld/home/bogovicj/dev/bdv/elm/lm-em-landmarks.csv";
-		final String n5Path = "/groups/saalfeld/saalfeldlab/FAFB00/v14_align_tps_20170818_dmg.n5";
+		final String n5Path = "/nrs/saalfeld/FAFB00/v14_align_tps_20170818_dmg.n5";
 		final String datasetName = "/volumes/raw";
 //		final VoxelDimensions voxelDimensions = new FinalVoxelDimensions("nm", new double[]{4, 4, 4});
 		final VoxelDimensions voxelDimensions = new FinalVoxelDimensions("nm", new double[]{1, 1, 1});
@@ -108,8 +108,8 @@ public class ELMv14_n5
 		
 		final AffineTransform3D resolutionXfm = new AffineTransform3D();
 		resolutionXfm.set( 4,  0,  0,  0, 
-					0,  4,  0,  0,
-					0,  0, 40,  0 );
+					       0,  4,  0,  0,
+					       0,  0, 40,  40 );
 		
 		final boolean useVolatile = true; 
 
