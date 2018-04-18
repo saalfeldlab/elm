@@ -1,0 +1,964 @@
+import java.awt.Color;
+import java.awt.Desktop;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.KeyEventPostProcessor;
+import java.awt.Point;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
+import java.awt.font.FontRenderContext;
+import java.awt.font.TextLayout;
+import java.awt.geom.Rectangle2D;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.text.DecimalFormat;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Properties;
+
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
+import javax.swing.Timer;
+
+import fiji.util.gui.GenericDialogPlus;
+import loci.formats.FormatException;
+import loci.formats.ImageReader;
+import com.opencsv.CSVReader;
+import bdv.SpimSource;
+import bdv.export.ProgressWriterConsole;
+import bdv.gui.BigWarpViewerFrame;
+import bdv.tools.InitializeViewerState;
+import bdv.spimdata.SpimDataMinimal;
+import bdv.tools.brightness.RealARGBColorConverterSetup;
+import bdv.tools.transformation.TransformedSource;
+import bdv.util.KeyProperties;
+import bdv.util.KeyProperties.KeyStrokeAdder;
+import bdv.viewer.BigWarpViewerPanel;
+import bdv.viewer.DisplayMode;
+import bdv.viewer.InputActionBindings;
+import bdv.viewer.Interpolation;
+import bdv.viewer.SourceAndConverter;
+import bdv.viewer.animate.AbstractAnimator;
+import bdv.viewer.animate.OverlayAnimator;
+import bdv.viewer.animate.SimilarityTransformAnimator;
+import bdv.viewer.animate.TranslationAnimator;
+import bigwarp.BigWarp;
+import bigwarp.BigWarpInit;
+import bigwarp.BigWarp.BigWarpData;
+import bigwarp.loader.ImagePlusLoader;
+import ij.IJ;
+import ij.ImageJ;
+import ij.ImagePlus;
+import ij.process.LUT;
+import net.imglib2.RealPoint;
+import net.imglib2.RealRandomAccess;
+import net.imglib2.display.RealLUTARGBColorConverter;
+import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.type.numeric.ARGBType;
+import net.imglib2.type.numeric.integer.UnsignedByteType;
+import org.scijava.ui.behaviour.util.AbstractNamedAction;
+
+WIDTH  = 1024;
+HEIGHT = 1024;
+
+DEFAULT_LANDMARKS = "lm-em-landmarks.tobin17.csv";
+DEFAULT_FAFB_XML = "catmaid-tobin17.xml";
+
+IMG_BASEDIR_LINUX   = "/home/saalfeld/tmp/elm/";
+IMG_BASEDIR_MAC     = "";
+IMG_BASEDIR_WINDOWS = "";
+DEFAULT_IMAGE = "JFRC2013.tif";
+
+LABEL_BASEDIR_LINUX   = "/home/saalfeld/tmp/elm/";
+LABEL_BASEDIR_MAC     = "";
+LABEL_BASEDIR_WINDOWS = "";
+
+DPX_LABELS_IMAGE = "DPX_Standard2013_Mask20131111_labels.tif";
+DPX_LABELS_NAMES = "DPX_Standard2013_Mask20131111.csv";
+DPX_LABELS_ID ="DPX_Standard2013_Mask20131111";
+
+VFB_LABELS_IMAGE = "JFRCtempate2010.mask130819_Original_warp.tif";
+VFB_LABELS_NAMES = "Original_Index.csv";
+VFB_LABELS_ID = "VFB";
+
+DEFAULT_STARTING_XFM_LIGHT = new double[]{
+	0.7066942719116632, 0.0, 0.0, -0.3533471359558007, 
+	0.0, 0.7066942719116632, 0.0, 244.8233264320221, 
+	0.0, 0.0, 0.7066942719116632, -154.05935127674258 };
+
+DEFAULT_STARTING_XFM_EM = new double[]{
+	0.0012364326318905303, 0.0, 0.0, -465.0, 0.0, 0.0012364326318905303, 0.0, -200.0, 0.0, 0.0, 0.0012364326318905303, -152.0 };
+
+EXPECTED_IMAGE_DIMS = new int[]{ 1450, 725, 436 };
+
+JFrame catmaidUrlFrame = new JFrame("CATMAID URL");
+
+
+public double[] getCatmaidPositionFromUrl()
+{
+	String url = (String)JOptionPane.showInputDialog(
+                catmaidUrlFrame,
+                "Paste CATMAID url here:",
+                "",
+                JOptionPane.OK_CANCEL_OPTION );
+	System.out.println( "url: " + url );
+	catmaidUrlFrame.setVisible( true );
+	if ((url == null) || (url.length() == 0))
+	{
+		return null;
+	}
+
+	String[] urlsplit = url.split( "&" );
+	double[] posScale = new double[ 4 ];
+	int a = 0;
+	for( String s : urlsplit )
+	{
+		if( s.startsWith( "xp=" ))
+		{
+			a += 1;
+			posScale[ 0 ] = Double.parseDouble( s.replaceAll( "xp=", "" ) );
+		}
+		else if( s.startsWith( "yp=" ))
+		{
+			a += 2;
+			posScale[ 1 ] = Double.parseDouble( s.replaceAll( "yp=", "" ) );
+		}
+		else if( s.startsWith( "zp=" ))
+		{
+			a += 4;
+			posScale[ 2 ] = Double.parseDouble( s.replaceAll( "zp=", "" ) );
+		}
+		else if( s.startsWith( "s0=" ))
+		{
+			a += 8;
+			posScale[ 3 ] = Double.parseDouble( s.replaceAll( "s0=", "" ) );
+		}
+	}
+	catmaidUrlFrame.setVisible( false );
+	if( a != 15 )
+	{
+		System.err.println( "invalid url" );
+		return null;
+	}
+	return posScale;
+}
+
+public String findElmDir()
+{
+    elmgitdir =  IJ.getDir("plugins") + "elm";
+    elmzipdir =  IJ.getDir("plugins") + "elm-master";
+
+    iselmgitdir = new File( elmgitdir ).exists();
+    iselmzipdir = new File( elmzipdir ).exists();
+
+    if( iselmgitdir && iselmzipdir )
+    {
+        IJ.error( "Warning: Found two elm folders!\nUsing:\n" + elmgitdir );
+        return elmgitdir;
+    }
+    else if( iselmgitdir )
+        return elmgitdir;
+    else if( iselmzipdir )
+        return elmzipdir;
+    else
+    {
+        IJ.error( "Could not find an elm folder in " + IJ.getDir("plugins")
+            + "\nPlease check that this script is in a folder called 'elm.'");
+        return "";
+    }
+}
+
+public String findPath( String[] label_dir_list, String file_name )
+{
+String result = "";
+for( String ld : label_dir_list )
+{
+
+    if( new File( ld ).exists())
+    {
+    	fimg = new File( ld + file_name );
+	System.out.println( fimg);
+    	if( fimg.exists() ){
+     		result = ld + file_name;
+     		break;
+    	}
+    }
+}
+System.out.println(result);
+if( result.isEmpty() )
+{
+	String messageList = "";
+	String message = "";
+	for( String ld : label_dir_list )
+	{
+		messageList+=ld+"\n";
+	}
+
+	if( IJ.isLinux() )
+	{
+		message = "It looks like you're using linux,\n" + 
+			"ensure /groups/saalfeld/public is visible";
+	}
+	else if( IJ.isMacOSX() )
+	{
+		message = "It looks like you're using macosx,\n" + 
+			"check connection to smb://dm11/saalfeldpublic";
+	}
+	else if( IJ.isWindows() )
+	{
+		message = "It looks like you're using windows,\n" + 
+			"check connection to \\\\dm11\\saalfeldlab";
+	}
+
+	dialog = new GenericDialogPlus("Missing label");
+	dialog.addMessage( "Could not find label file.\n" + 
+		message + 
+		"\nor specify label location below:");
+
+	dialog.addFileField( "Label image: ",  "" );
+	dialog.showDialog();
+
+	if( !dialog.wasCanceled() )
+	{
+		return dialog.getNextString();
+	}
+	else{
+		return null;
+	}
+}
+else{
+	return result;
+}
+}
+
+public static class LabelNameOverlayFetcher
+{
+    BigWarpViewerPanel panel;
+    HashMap labelNames;
+
+    RealPoint mousePoint;
+    double[] mouseArray;
+
+    BigWarp bw;
+    int index;
+
+    LabelNameOverlayFetcher( BigWarpViewerPanel viewer, HashMap labelNames, BigWarp bw, int index  )
+    {
+        this.panel = viewer;
+        this.labelNames = labelNames;
+
+        this.index = index;
+        this.bw = bw;
+
+        mouseArray = new double[ 3 ];
+        mousePoint = RealPoint.wrap( mouseArray );
+    }
+
+    String getName()
+    {
+
+        if( index < 0 )
+            return "< no label >";
+
+        srcra = bw.getSources().get( index ).getSpimSource().getInterpolatedSource( 0, 0, Interpolation.NEARESTNEIGHBOR ).realRandomAccess();
+
+        panel.getGlobalMouseCoordinates( mousePoint );
+        srcra.setPosition( mouseArray );
+        String name = labelNames.get( srcra.get().getInteger() );
+        if( name != null )
+            return name;
+        else
+            return "< no label >";
+    }
+}
+
+public static class LabelOverlayAnimator implements OverlayAnimator, MouseMotionListener
+{
+    Font font;
+    BigWarpViewerFrame frame;
+    LabelNameOverlayFetcher fetcher;
+    Timer timer;
+
+    String text;
+    boolean isVisible;
+
+    int x;
+    int y;
+
+    LabelOverlayAnimator( BigWarpViewerFrame frame, LabelNameOverlayFetcher fetcher )
+    {
+		this.frame = frame;
+		this.fetcher = fetcher;
+		this.font = new Font( "Monospaced", Font.PLAIN, 14 ); 
+		text = "";
+		isVisible = false;
+		
+		timer = new Timer( 200, new ActionListener()
+		{
+			public void actionPerformed( ActionEvent e )
+			{
+				synchronized( this )
+				{
+					isVisible = false;
+				}
+				timer.stop();
+			}
+		});
+		
+		this.frame.getViewerPanel().addOverlayAnimator( this );
+		this.frame.getViewerPanel().getDisplay().addHandler( this );
+    } 
+
+    public synchronized void changeText( String text )
+	{
+		this.text = text;
+	}
+	
+	public synchronized void setVisible( boolean visible )
+	{
+		if( visible ) 
+		{
+			timer.stop();
+			isVisible = visible;
+			changeText( fetcher.getName() );
+            this.frame.getViewerPanel().getDisplay().repaint();
+		}
+		else
+		{
+			timer.start();
+		}
+	}
+
+	public boolean isComplete()
+	{
+		// this animator should not be removed, ever.
+		return false;
+	}
+
+
+	public boolean requiresRepaint()
+	{
+		return isVisible;
+	}
+
+	public void paint( Graphics2D g, long time )
+	{
+		if ( !requiresRepaint() || text.isEmpty())
+			return;
+
+		frc = g.getFontRenderContext();
+
+		layout = new TextLayout( text, font, frc );
+		bounds = layout.getBounds();
+
+		fm = g.getFontMetrics( font );
+		strwidth = fm.stringWidth( text );
+		fonthgt = fm.getHeight();
+		
+		tx = (int)( x - bounds.getWidth() / 2 );
+		ty = y - 12;
+		
+		g.setColor( new Color( 1f, 1f, 1f, 0.7f ) );
+		g.fillRect( tx - 1, ty - fonthgt + 2, strwidth + 2, fonthgt);
+
+		g.setColor( new Color( 0f, 0f, 0f, 1f ) );
+		layout.draw( g, tx, ty );
+	}
+
+	public void mouseDragged( MouseEvent e ){}
+
+	public void mouseMoved( MouseEvent e )
+	{
+		x = e.getX();
+		y = e.getY();
+		
+		if( isVisible )
+			changeText( fetcher.getName() );
+	}
+}
+
+public class ShowMessageAction extends AbstractNamedAction
+{
+	long serialVersionUID = 3856613701227807288L;
+	BigWarpViewerPanel panel;
+    LabelNameOverlayFetcher nameFetcher;
+
+	ShowMessageAction( String name, BigWarpViewerPanel panel,  LabelNameOverlayFetcher nameFetcher )
+	{
+		super( name );
+		this.panel = panel;
+		this.nameFetcher = nameFetcher;
+	}
+
+    public void actionPerformed( ActionEvent e )
+    {
+        panel.showMessage( nameFetcher.getName() );
+	}
+}
+
+void addLabelActions( BigWarpViewerFrame viewer, LabelNameOverlayFetcher animator )
+{
+    if( animator == null ){ return; }
+
+    config = new Properties();
+    keyProperties = new KeyProperties( config );
+
+    inputMap = new InputMap();
+    map = keyProperties.adder( inputMap );
+    map.put( "DISPLAY LABEL NAME", new String[]{ "L" } );
+
+    actionMap = new ActionMap();
+    new ShowMessageAction( "DISPLAY LABEL NAME", viewer.getViewerPanel(), animator ).put( actionMap );
+
+    keybindings = viewer.getKeybindings();
+
+    keybindings.addActionMap( "labels", actionMap );
+    keybindings.addInputMap(  "labels", inputMap, new String[]{} );
+
+}
+
+public static HashMap loadCompartmentLabels( String csvPath )
+{
+    // try loading the csv
+    rows = null;
+    try
+    {
+        reader = new CSVReader( new FileReader( csvPath ));
+        rows = reader.readAll();
+        reader.close();
+    } catch ( FileNotFoundException e )
+    {
+        e.printStackTrace();
+    } catch ( IOException e )
+    {
+        e.printStackTrace();
+    }
+
+    if( rows == null )
+        return null;
+
+    labelsToName = new HashMap();
+    for( String[] row : rows )
+    {
+        // allow for rows with unexpected content and try to continue if possible
+        try
+        {
+            labelsToName.put( Integer.parseInt( row[ 1 ] ), row [ 2 ] );
+        }
+        catch( NumberFormatException e ) {}
+    }
+
+    if ( labelsToName.isEmpty() )
+        return null;
+
+    return labelsToName;
+}
+
+LabelNameOverlayFetcher addLabelNameOverlay( BigWarpViewerPanel panel, BigWarp bw, String fnCompartmentLabels, int index )
+{
+    labels2Names = loadCompartmentLabels( fnCompartmentLabels );
+    lnoa = new LabelNameOverlayFetcher( panel, labels2Names, bw, index );
+    panel.getDisplay().addHandler( lnoa );
+    return lnoa;
+}
+
+/**
+ * Return true if f has the extension ext,
+ * and is an image of size [ nx, ny, nz ] 
+ * and is not RGB
+ * and is single channel.
+ *  
+ * @param f
+ * @param nx the image width
+ * @param ny the image height
+ * @param nz the image depth
+ * @param ext the file extension
+ * @return
+ */
+boolean isConsistentSize( String f, int nx, int ny, int nz, String ext )
+{
+    if ( !f.endsWith( ext ) )
+        return false;
+
+    try
+    {
+        reader = new ImageReader();
+        reader.setId( f );
+        result =
+                ( !reader.isRGB() ) && 
+                ( reader.getSizeX() == nx ) && 
+                ( reader.getSizeY() == ny ) &&
+                ( reader.getSizeZ() == nz || reader.getImageCount() == nz ) &&
+                ( reader.getSizeC() == 1 );
+
+        reader.close();
+        return result;
+    } 
+    catch ( FormatException e ) {}
+    catch ( IOException e ) {}
+
+    return false;
+}
+
+void checkInputImages( ImagePlus[] impList )
+{
+	for( int i = 0; i < impList.length; i++ )
+	{
+		dims = impList[ i ].getDimensions();
+		for( int j = 0; j < 2; j++ )
+		{
+			if( dims[ j ] != EXPECTED_IMAGE_DIMS[ j ] )
+			{
+				warning = "WARNING: Expecting images of size " + printArray( EXPECTED_IMAGE_DIMS ) +
+					" but image " + impList[ i ].getTitle() + " has size " + printArray( dims );
+				IJ.error( warning );
+                break;
+			}
+		}
+	}
+}
+
+String printArray( int[] in )
+{
+	out = "( ";
+	for( int i = 0; i < in.length; i++ )
+	{
+		out += in[ i ];
+		if( i < in.length - 1 )
+			out += ", ";
+	}
+	out += " )";
+	return out;
+}
+
+BigWarpData addLabels( BigWarpData data, String fnCompartmentLabels, String compartmentName )
+{
+    tmp = data.movingSourceIndices;
+    newMSI = new int[ tmp.length + 1 ];
+    System.arraycopy( tmp, 0, newMSI, 0, tmp.length );
+    newMSI[ tmp.length ] = data.sources.size();
+
+    setupId = 20131111;
+
+    labels = IJ.openImage( fnCompartmentLabels );
+    spimdat = new ImagePlusLoader( labels ).loadAll( 20131111 )[ 0 ];
+
+    lut = labels.getLuts()[ 0 ];
+    rgba = new int[ lut.getMapSize() ];
+    lut.getRGBs( rgba );
+
+    converter = new RealLUTARGBColorConverter( labels.getDisplayRangeMin(), labels.getDisplayRangeMax(), rgba );
+
+    s = new SpimSource( spimdat, setupId, compartmentName );
+
+    // Decorate each source with an extra transformation, that can be
+    // edited manually in this viewer.UnsignedByteType
+    ts = new TransformedSource( s );
+    soc = new SourceAndConverter( ts, converter );
+
+    data.sources.add( soc );
+    convList = new ArrayList();
+    convList.add( converter );
+    data.converterSetups.add( new RealARGBColorConverterSetup( setupId, convList ) );
+
+    return new BigWarpData( data.sources, data.seqP, data.seqQ, data.converterSetups, newMSI, data.targetSourceIndices );
+}
+
+
+ImagePlus[] loadImages( String selection )
+{
+    baseF = new File( selection );
+    dir = new File( baseF.getParent() );
+    fList = dir.listFiles();
+    
+
+    baseImp = IJ.openImage( selection );
+    ext = selection.substring( selection.lastIndexOf( '.' ));
+    nx = baseImp.getWidth();
+    ny = baseImp.getHeight();
+    nz = baseImp.getNSlices();
+
+    numImages = 1;
+    loadMe = new boolean[ fList.length ];
+    for ( int i = 0; i < fList.length; i++ )
+    {
+        f = fList[ i ];
+        // dont process the file that was selected
+        if( f.isDirectory() || f.getName().equals( baseF.getName() ))
+        {
+            continue;
+        }
+
+        try
+        {
+            if ( isConsistentSize( f.getCanonicalPath(), nx, ny, nz, ext ) )
+            {
+                loadMe[ i ] = true;
+                numImages++;
+            }
+        } catch ( IOException e ) {}
+
+    }
+
+    int k = 0;
+    out = new ImagePlus[ numImages ];
+    out[ k++ ] = baseImp;
+    for ( int i = 0; i < fList.length; i++ )
+    {
+        if ( loadMe[ i ] )
+        {
+            try
+            {
+                out[ k++ ] = IJ.openImage( fList[ i ].getCanonicalPath() );
+            } 
+            catch ( IOException e ) {}
+        }
+    }
+
+    return out;
+}
+
+try
+{
+
+sys_default_image = "";
+
+elmdir = findElmDir();
+if( elmdir.isEmpty() )
+    return;
+else
+    elmdir = elmdir + File.separator;
+
+imgDirList = new String[]{ elmdir, IMG_BASEDIR_LINUX,  IMG_BASEDIR_MAC, IMG_BASEDIR_WINDOWS };
+sys_default_image = findPath( imgDirList, DEFAULT_IMAGE );
+
+labelDirList = new String[]{ elmdir, LABEL_BASEDIR_LINUX,  LABEL_BASEDIR_MAC, LABEL_BASEDIR_WINDOWS };
+
+// These two lines can remain as they are if elm is cloned into your
+// Fiji plugins directory.  Otherwise, they will need modification. 
+defaultLandmarksFile = elmdir + DEFAULT_LANDMARKS;
+FAFB_XML = elmdir + DEFAULT_FAFB_XML;
+
+gd = new GenericDialogPlus( "BigWarp" );
+gd.addFileField( "Landmarks: ", defaultLandmarksFile );
+gd.addFileField( "Light template: ", sys_default_image );
+gd.addCheckbox( "Auto discover", true );
+gd.addRadioButtonGroup( "Label", new String[]{"None", "DPX", "VFB"}, 1, 3, "None" );
+gd.showDialog();
+
+
+if (!gd.wasCanceled())
+{
+    System.out.println( "V13" );
+
+    fnLandmarks = gd.getNextString();
+    fnMoving = gd.getNextString();
+    autoDiscover = gd.getNextBoolean();
+    labelOption = gd.getNextRadioButton();
+
+    loadLabels = false;
+    fnCompartmentImage = "";
+    fnCompartmentNames = "";
+    compartmentId = "";
+
+    if( labelOption.equals( "DPX" ))
+    {
+        loadLabels = true;
+        fnCompartmentImage = findPath( labelDirList, DPX_LABELS_IMAGE );
+        fnCompartmentNames = fnCompartmentImage.replaceAll( ".tif", ".csv" );
+        compartmentId = DPX_LABELS_ID;
+    }
+    else if( labelOption.equals( "VFB" ))
+    {
+        loadLabels = true;
+        fnCompartmentImage = findPath( labelDirList, VFB_LABELS_IMAGE );
+        fnCompartmentNames = fnCompartmentImage.replaceAll( ".tif", ".csv" );
+        compartmentId = VFB_LABELS_ID;
+    }
+
+    try
+    {
+        System.setProperty( "apple.laf.useScreenMenuBar", "false" );
+
+        if ( autoDiscover )
+            impList = loadImages( fnMoving );
+        else
+            impList = new ImagePlus[]{ IJ.openImage( fnMoving ) };
+
+        checkInputImages( impList );
+
+        if ( impList != null && impList.length > 0 && impList[ 0 ] != null )
+        {
+
+            data = null;
+            labelSourceIndex = -1;
+            if( !fnCompartmentNames.isEmpty() && loadLabels )
+            {
+                BigWarpData dataRaw = BigWarpInit.createBigWarpDataFromImagePlusXML( impList, FAFB_XML );
+                labelSourceIndex = dataRaw.sources.size();
+                data = addLabels( dataRaw, fnCompartmentImage, compartmentId );
+            }
+            else
+            {
+                data = BigWarpInit.createBigWarpDataFromImagePlusXML( impList, FAFB_XML );
+            }
+
+
+            bw = new BigWarp( data, new File( fnMoving ).getName(), new ProgressWriterConsole() );
+
+            if ( !fnLandmarks.isEmpty() )
+                bw.getLandmarkPanel().getTableModel().load( new File( fnLandmarks ) );
+
+            LabelOverlayAnimator toaP;
+            LabelOverlayAnimator toaQ;
+            LabelNameOverlayFetcher lnofP;
+            LabelNameOverlayFetcher lnofQ;
+            if( !fnCompartmentNames.isEmpty() )
+            {
+                lnofP = addLabelNameOverlay( bw.getViewerFrameP().getViewerPanel(), bw, fnCompartmentNames, labelSourceIndex );
+                lnofQ = addLabelNameOverlay( bw.getViewerFrameQ().getViewerPanel(), bw, fnCompartmentNames, labelSourceIndex );
+
+                toaP = new LabelOverlayAnimator( bw.getViewerFrameP(), lnofP );
+                toaQ = new LabelOverlayAnimator( bw.getViewerFrameQ(), lnofQ );
+
+            }else
+            {
+                lnoaP = null;
+                lnoaQ = null;
+            }
+
+            int i = 0;
+            // correct viewer transform and contrast
+            bw.getViewerFrameQ().getViewerPanel().getVisibilityAndGrouping().setCurrentSource( data.targetSourceIndices[ 0 ] );
+
+
+			
+            // set colors of moving and target images (only edit moving image - catmaid source can't have its color changed )
+            bw.getSetupAssignments().getConverterSetups().get( 0 ).setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 255 ) ) );
+
+            // set color of points
+            bw.setSpotColor( new Color( 255, 255, 0, 255 ) ); // YELLOW
+
+            bw.getViewerFrameP().setSize( WIDTH, HEIGHT );
+            bw.getViewerFrameQ().setSize( WIDTH, HEIGHT );
+
+            bw.getViewerFrameP().setLocation( 0, 0 );
+            location = bw.getViewerFrameP().getLocation();
+
+            location.setLocation( location.x + WIDTH, location.y );
+            bw.getViewerFrameQ().setLocation( location );
+
+            location.setLocation( location.x + WIDTH, location.y );
+            bw.getLandmarkPanel().setLocation( location );
+
+
+            keyProcessor = new KeyEventPostProcessor()
+            {
+
+                public boolean postProcessKeyEvent( KeyEvent e )
+                {
+                    if ( e.getID() == KeyEvent.KEY_PRESSED && e.getKeyCode() == KeyEvent.VK_K )
+                    {
+                        xr = 4.0;
+                        yr = 4.0;
+                        zr = 35.0;
+                        panel = null;
+                        if( bw.getViewerFrameP().isActive() )
+                        {
+                            panel = bw.getViewerFrameP().getViewerPanel();
+                        }
+                        else if( bw.getViewerFrameQ().isActive() )
+                        {
+                            panel = bw.getViewerFrameQ().getViewerPanel();
+                        }
+                        else
+                        {
+                            System.err.println("Neither viewer panel is active.");
+                            System.err.println("Click a viewer panel and try again.");
+                            return true;
+                        }
+
+                        center = new RealPoint( 3 );
+                        panel.displayToGlobalCoordinates( 0.5 * panel.getWidth(), 0.5 * panel.getHeight(), center );
+                        x = center.getDoublePosition( 0 );
+                        y = center.getDoublePosition( 1 );
+                        z = center.getDoublePosition( 2 );
+                        panel.displayToGlobalCoordinates( 0.5 * panel.getWidth() + 1, 0.5 * panel.getHeight(), center );
+                        dx = x - center.getDoublePosition( 0 );
+                        dy = y - center.getDoublePosition( 1 );
+                        dz = z - center.getDoublePosition( 2 );
+
+                        d = 0.5 * Math.sqrt( dx * dx / xr + dy * dy / yr + dz * dz / zr );
+                        s = Math.log( d ) / Math.log( 2 ); // s = log_2(d)
+
+						df = new DecimalFormat( "0.000000" );
+						dfshort = new DecimalFormat( "0.0" );
+						url = "https://neuropil.janelia.org/tracing/fafb/v13/?pid=1&sid0=5&xp=" + df.format( x ) +
+						 "&yp=" + df.format( y ) + 
+						 "&zp=" + df.format( z ) + 
+						 "&s0=" + dfshort.format( s ) + "&tool=navigator";
+
+                        if ( Desktop.isDesktopSupported() )
+                        {
+                            desktop = Desktop.getDesktop();
+                            try
+                            {
+                                desktop.browse( new URI( url ) );
+                            }
+                            catch ( IOException e1 )
+                            {
+                                e1.printStackTrace();
+                            }
+                            catch ( URISyntaxException e1 )
+                            {
+                                e1.printStackTrace();
+                            }
+                        }
+                        else
+                        {
+                            runtime = Runtime.getRuntime();
+                            try
+                            {
+                                runtime.exec( "xdg-open " + url );
+                            }
+                            catch ( IOException e1 )
+                            {
+                                // TODO Auto-generated catch block
+                                e1.printStackTrace();
+                            }
+                        }
+
+                        System.out.println( url );
+
+                    } 
+                    else if ( e.getKeyCode() == KeyEvent.VK_L )
+                    {
+						/*
+                    	viewXfmP = new AffineTransform3D();
+						bw.getViewerFrameP().getViewerPanel().getState().getViewerTransform( viewXfmP );
+
+						viewXfmQ = new AffineTransform3D();
+						bw.getViewerFrameQ().getViewerPanel().getState().getViewerTransform( viewXfmQ );
+
+						System.out.println( "Viewer P Xfm: " + viewXfmP );
+						System.out.println( "Viewer Q Xfm: " + viewXfmQ );
+						System.out.println( " " );
+						*/
+                        if( e.getID() == KeyEvent.KEY_PRESSED )
+                        {
+                            if( toaP != null )
+                                toaP.setVisible( true );
+
+                            if( toaQ != null )
+                                toaQ.setVisible( true );
+                        }
+                        else if( e.getID() == KeyEvent.KEY_RELEASED )
+                        {
+                            if( toaP != null )
+                                toaP.setVisible( false );
+
+                            if( toaQ != null )
+                                toaQ.setVisible( false );
+                        }
+                    }
+                    else if (  e.getID() == KeyEvent.KEY_PRESSED && e.getKeyCode() == KeyEvent.VK_C )
+                    {
+						xr = 4.0;
+						yr = 4.0;
+						zr = 35.0;
+
+						position = getCatmaidPositionFromUrl();
+						if( position != null )
+						{
+
+							viewer = bw.getViewerFrameQ().getViewerPanel();
+							/*
+		                    if( bw.getViewerFrameP().isActive() )
+		                    {
+		                        viewer = bw.getViewerFrameP().getViewerPanel();
+		                    }
+		                    else if( bw.getViewerFrameQ().isActive() )
+		                    {
+		                        viewer = bw.getViewerFrameQ().getViewerPanel();
+		                    }
+		                    else
+		                    {
+		                        System.err.println("Neither viewer panel is active.");
+		                        System.err.println("Click a viewer panel and try again.");
+		                        return true;
+		                    }
+							*/
+							pt = new double[ 3 ];
+							pt[ 0 ] = position[ 0 ];
+							pt[ 1 ] = position[ 1 ];
+							pt[ 2 ] = position[ 2 ];
+							catmaidScale = position[ 3 ];
+							bdvScale = ( 1 / xr ) * Math.pow( 2, -catmaidScale );
+
+							center = new double[] { viewer.getWidth() / 2, viewer.getHeight() / 2, 0 };
+							positionXfm = new double[ 3 ];
+							//transform = viewer.getDisplay().getTransformEventHandler().getTransform();
+
+							newXfm = new AffineTransform3D();
+							newXfm.scale( bdvScale );
+							// have it translate the destination point to the center of the window
+							newXfm.apply( position, positionXfm );
+
+							translationVector = new double[ 3 ];
+							for( int d = 0; d < 3; d++ )
+							{
+								translationVector[ d ] = center[ d ] - positionXfm[ d ];
+							}
+							newXfm.translate( translationVector );
+							viewer.animateTransformation( newXfm );
+
+						}
+                    }
+                    return true;
+                }
+
+            };
+			bw.addKeyEventPostProcessor( keyProcessor );
+
+            bw.toggleMovingImageDisplay();
+            bw.getViewerFrameQ().getViewerPanel().setDisplayMode( DisplayMode.FUSED );
+
+            // set range of label maps if for "DPX" labels if relevant
+            if ( compartmentId == DPX_LABELS_ID )
+            {
+                // Picked this range because it looked reasonable, there may be other / better choices.
+                minMaxGroupLabel = bw.getSetupAssignments().getMinMaxGroups().get( 2 );
+                minMaxGroupLabel.getMinBoundedValue().setCurrentValue( 0.0 );
+                minMaxGroupLabel.getMaxBoundedValue().setCurrentValue( 512.0 );
+            }
+
+            bw.getLandmarkFrame().pack();
+            bw.getLandmarkFrame().repaint();
+            bw.getLandmarkFrame().setVisible( true );
+
+			viewXfm = new AffineTransform3D();
+            viewXfm.set( DEFAULT_STARTING_XFM_EM );
+            bw.getViewerFrameP().getViewerPanel().setCurrentViewerTransform( viewXfm.copy() );
+			bw.getViewerFrameQ().getViewerPanel().setCurrentViewerTransform( viewXfm.copy() );
+			bw.getViewerFrameP().getViewerPanel().requestRepaint();
+            bw.getViewerFrameQ().getViewerPanel().requestRepaint();
+        }
+    }
+    catch ( Exception e )
+    {
+        e.printStackTrace();
+    }
+}
+
+}
+catch( Exception e )
+{ 
+    e.printStackTrace();
+}
+
