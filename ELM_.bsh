@@ -67,8 +67,8 @@ import org.scijava.ui.behaviour.util.AbstractNamedAction;
 WIDTH  = 1024;
 HEIGHT = 1024;
 
-DEFAULT_LANDMARKS = "lm-em-landmarks.csv";
-DEFAULT_FAFB_XML = "catmaid-fafb00-v14-align-tps.xml"
+DEFAULT_LANDMARKS = "lm-em-landmarks_v14.csv";
+DEFAULT_FAFB_XML = "catmaid-fafb00-v14-align-tps-neuropil.xml";
 
 IMG_BASEDIR_LINUX   = "/groups/saalfeld/public/flytem-eml/DPX_Standard2013/";
 IMG_BASEDIR_MAC     = "/Volumes/saalfeldpublic/flytem-eml/DPX_Standard2013/";
@@ -655,7 +655,7 @@ gd.showDialog();
 
 if (!gd.wasCanceled())
 {
-    System.out.println( "V13" );
+    System.out.println( "V14" );
 
     fnLandmarks = gd.getNextString();
     fnMoving = gd.getNextString();
@@ -799,7 +799,7 @@ if (!gd.wasCanceled())
 
 						df = new DecimalFormat( "0.000000" );
 						dfshort = new DecimalFormat( "0.0" );
-						url = "https://neuropil.janelia.org/tracing/fafb/v13/?pid=1&sid0=5&xp=" + df.format( x ) +
+						url = "https://neuropil.janelia.org/tracing/fafb/v14/?pid=1&sid0=5&xp=" + df.format( x ) +
 						 "&yp=" + df.format( y ) + 
 						 "&zp=" + df.format( z ) + 
 						 "&s0=" + dfshort.format( s ) + "&tool=navigator";
