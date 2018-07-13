@@ -49,7 +49,7 @@ Two alternatives:
 * After installation, the script can be accessed from the Fiji menu by:  
   * Plugins > elm > ELM
 * Use the dialog to select an image to warp into FAFB space
-  * Note: it must be coregistered to the template nc82 stack
+  * Note: it must be coregistered to the JFRC2013 template nc82 stack
   * If "Auto discover" is selected, ELM will open the selected image and, if the selected image has only one channel, will search for other channels:
       1. in the same folder,
       2. with the same extension, and
