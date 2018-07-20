@@ -570,6 +570,37 @@ BigWarpData addLabels( BigWarpData data, String fnCompartmentLabels, String comp
     return new BigWarpData( data.sources, data.seqP, data.seqQ, data.converterSetups, newMSI, data.targetSourceIndices );
 }
 
+double[][] storedSpacings;
+/*
+ * ELM's transformation is defined in pixel space, so 
+ * use this helper to deal with it.
+ */
+preProcImageHeaders( ImagePlus[] impList )
+{
+	storedSpacings = new double[impList.length][3];
+	for( int i = 0; i < impList.length; i++ )
+	{
+		imp = impList[ i ];
+		storedSpacings[i][0] = imp.getCalibration().pixelWidth;
+		storedSpacings[i][1] = imp.getCalibration().pixelHeight;
+		storedSpacings[i][2] = imp.getCalibration().pixelDepth;
+
+		imp.getCalibration().pixelWidth = 1.0;
+		imp.getCalibration().pixelHeight = 1.0;
+		imp.getCalibration().pixelDepth = 1.0;
+	}
+}
+
+postProcImageHeaders( ImagePlus[] impList )
+{
+	for( int i = 0; i < impList.length; i++ )
+	{
+		imp = impList[ i ];
+		imp.getCalibration().pixelWidth = storedSpacings[i][0];
+		imp.getCalibration().pixelHeight = storedSpacings[i][1];
+		imp.getCalibration().pixelDepth = storedSpacings[i][2];
+	}
+}
 
 ImagePlus[] loadImages( String selection )
 {
@@ -700,13 +731,18 @@ if (!gd.wasCanceled())
             labelSourceIndex = -1;
             if( !fnCompartmentNames.isEmpty() && loadLabels )
             {
+            	preProcImageHeaders( impList );
                 BigWarpData dataRaw = BigWarpInit.createBigWarpDataFromImagePlusXML( impList, FAFB_XML );
                 labelSourceIndex = dataRaw.sources.size();
                 data = addLabels( dataRaw, fnCompartmentImage, compartmentId );
+
+                postProcImageHeaders( impList );
             }
             else
             {
+            	preProcImageHeaders( impList );
                 data = BigWarpInit.createBigWarpDataFromImagePlusXML( impList, FAFB_XML );
+                postProcImageHeaders( impList );
             }
 
 
@@ -737,8 +773,6 @@ if (!gd.wasCanceled())
             // correct viewer transform and contrast
             bw.getViewerFrameQ().getViewerPanel().getVisibilityAndGrouping().setCurrentSource( data.targetSourceIndices[ 0 ] );
 
-
-			
             // set colors of moving and target images (only edit moving image - catmaid source can't have its color changed )
             bw.getSetupAssignments().getConverterSetups().get( 0 ).setColor( new ARGBType( ARGBType.rgba( 255, 0, 255, 255 ) ) );
 
