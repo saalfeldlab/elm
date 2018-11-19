@@ -679,7 +679,7 @@ FAFB_XML = elmdir + DEFAULT_FAFB_XML;
 gd = new GenericDialogPlus( "BigWarp" );
 gd.addFileField( "Landmarks: ", defaultLandmarksFile );
 gd.addFileField( "Light template: ", sys_default_image );
-gd.addCheckbox( "Auto discover", true );
+gd.addCheckbox( "Auto discover", false );
 gd.addRadioButtonGroup( "Label", new String[]{"None", "DPX", "VFB"}, 1, 3, "None" );
 gd.showDialog();
 
@@ -713,6 +713,10 @@ if (!gd.wasCanceled())
         compartmentId = VFB_LABELS_ID;
     }
 
+    System.out.println( "Landmarks: " + fnLandmarks );
+    System.out.println( "Landmarks: " + fnLandmarks );
+    System.out.println( "Moving image: " + fnMoving );
+
     try
     {
         System.setProperty( "apple.laf.useScreenMenuBar", "false" );
@@ -721,6 +725,7 @@ if (!gd.wasCanceled())
             impList = loadImages( fnMoving );
         else
             impList = new ImagePlus[]{ IJ.openImage( fnMoving ) };
+
 
         checkInputImages( impList );
 
