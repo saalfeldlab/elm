@@ -153,15 +153,22 @@ public String findElmDir()
 {
     elmgitdir =  IJ.getDir("plugins") + "elm";
     elmzipdir =  IJ.getDir("plugins") + "elm-master";
+    elmkcdir =  IJ.getDir("plugins") + "elm-kaylynn";
 
     iselmgitdir = new File( elmgitdir ).exists();
     iselmzipdir = new File( elmzipdir ).exists();
+    iselmkcdir = new File( elmkcdir ).exists();
 
-    if( iselmgitdir && iselmzipdir )
-    {
-        IJ.error( "Warning: Found two elm folders!\nUsing:\n" + elmgitdir );
-        return elmgitdir;
-    }
+    System.out.println( "KAYLYNN" );
+
+    //if( iselmgitdir && iselmzipdir )
+    //{
+    //    IJ.error( "Warning: Found two elm folders!\nUsing:\n" + elmkcdir );
+    //    return elmkcdir;
+    //}
+
+    if( iselmkcdir )
+        return elmkcdir;
     else if( iselmgitdir )
         return elmgitdir;
     else if( iselmzipdir )
@@ -183,7 +190,7 @@ for( String ld : label_dir_list )
     if( new File( ld ).exists())
     {
     	fimg = new File( ld + file_name );
-	System.out.println( fimg);
+        System.out.println( fimg);
     	if( fimg.exists() ){
      		result = ld + file_name;
      		break;
@@ -675,6 +682,8 @@ labelDirList = new String[]{ elmdir, LABEL_BASEDIR_LINUX,  LABEL_BASEDIR_MAC, LA
 // Fiji plugins directory.  Otherwise, they will need modification. 
 defaultLandmarksFile = elmdir + DEFAULT_LANDMARKS;
 FAFB_XML = elmdir + DEFAULT_FAFB_XML;
+
+System.out.println("xml to use: " + FAFB_XML );
 
 gd = new GenericDialogPlus( "BigWarp" );
 gd.addFileField( "Landmarks: ", defaultLandmarksFile );
