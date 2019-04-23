@@ -1,0 +1,518 @@
+import java.awt.Desktop;
+import java.awt.KeyEventPostProcessor;
+import java.awt.KeyboardFocusManager;
+import java.awt.event.KeyEvent;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+
+import org.janelia.saalfeldlab.n5.DatasetAttributes;
+import org.janelia.saalfeldlab.n5.N5FSReader;
+import org.janelia.saalfeldlab.n5.hdf5.N5HDF5Reader;
+import org.janelia.saalfeldlab.n5.imglib2.N5DisplacementField;
+import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+
+import bdv.BigDataViewer;
+import bdv.cache.CacheControl;
+import bdv.img.WarpedSource;
+import bdv.tools.brightness.ConverterSetup;
+import bdv.tools.transformation.TransformedSource;
+import bdv.util.BdvFunctions;
+import bdv.util.BdvOptions;
+import bdv.util.BdvSource;
+import bdv.util.BdvStackSource;
+import bdv.util.RandomAccessibleIntervalMipmapSource;
+import bdv.util.volatiles.SharedQueue;
+import bdv.viewer.Source;
+import bdv.viewer.SourceAndConverter;
+import bdv.viewer.ViewerPanel;
+import bdv.viewer.animate.SimilarityTransformAnimator2D;
+import bdv.viewer.animate.SimilarityTransformAnimator3D;
+import bigwarp.loader.ImagePlusLoader;
+
+import ij.IJ;
+import ij.ImagePlus;
+import loci.plugins.BF;
+import fiji.util.gui.GenericDialogPlus;
+
+import mpicbg.spim.data.generic.AbstractSpimData;
+import mpicbg.spim.data.sequence.FinalVoxelDimensions;
+import mpicbg.spim.data.sequence.VoxelDimensions;
+
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.RealPoint;
+import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
+import net.imglib2.realtransform.AffineTransform3D;
+import net.imglib2.realtransform.RealTransform;
+import net.imglib2.type.numeric.integer.UnsignedByteType;
+import net.imglib2.type.numeric.real.FloatType;
+
+
+String SCALE_KEY = "downsamplingFactors";
+
+DEFAULT_FAFB_XML = "catmaid-fafb00-v14-align-tps-neuropil.xml";
+
+DEFAULT_FAFB_N5_DSET = "/volumes/raw";
+DEFAULT_FAFB_N5_LINUX = "/nrs/saalfeld/FAFB00/v14_align_tps_20170818_dmg.n5";
+DEFAULT_FAFB_N5_MAC = "smb://nrs/saalfeld/FAFB00/v14_align_tps_20170818_dmg.n5";
+DEFAULT_FAFB_N5_WINDOWS = "\\\\nrs\\saalfeld\\FAFB00\\v14_align_tps_20170818_dmg.n5";
+
+DEFAULT_TRANSFORM_PATH_LINUX = "/groups/saalfeld/public/jrc2018/transformations/quantized_multiscale/";
+DEFAULT_TRANSFORM_PATH_MAC = "/Volumes/saalfeldpublic/jrc2018/transformations/quantized_multiscale/";
+DEFAULT_TRANSFORM_PATH_WINDOWS = "\\\\dm11\\saalfeldpublic\\jrc2018\\transformations\\quantized_multiscale\\";
+DEFAULT_TRANSFORM = "JRC2018F_FAFB.h5";
+
+IMG_BASEDIR_LINUX   = "/groups/saalfeld/public/jrc2018/";
+IMG_BASEDIR_MAC     = "/Volumes/saalfeldpublic/jrc2018/";
+IMG_BASEDIR_WINDOWS = "\\\\dm11\\saalfeldpublic\\jrc2018\\";
+DEFAULT_IMAGE = "JRC2018_FEMALE_20x_gen1_iso.nrrd";
+
+
+public double[] getCatmaidPositionFromUrl()
+{
+    String url = (String)JOptionPane.showInputDialog(
+                catmaidUrlFrame,
+                "Paste CATMAID url here:",
+                "",
+                JOptionPane.OK_CANCEL_OPTION );
+
+    System.out.println( "url: " + url );
+    catmaidUrlFrame.setVisible( true );
+    if ((url == null) || (url.length() == 0))
+    {
+        return null;
+    }
+
+    String[] urlsplit = url.split( "&" );
+    double[] posScale = new double[ 4 ];
+    int a = 0;
+    for( String s : urlsplit )
+    {
+        if( s.startsWith( "xp=" ))
+        {
+            a += 1;
+            posScale[ 0 ] = Double.parseDouble( s.replaceAll( "xp=", "" ) );
+        }
+        else if( s.startsWith( "yp=" ))
+        {
+            a += 2;
+            posScale[ 1 ] = Double.parseDouble( s.replaceAll( "yp=", "" ) );
+        }
+        else if( s.startsWith( "zp=" ))
+        {
+            a += 4;
+            posScale[ 2 ] = Double.parseDouble( s.replaceAll( "zp=", "" ) );
+        }
+        else if( s.startsWith( "s0=" ))
+        {
+            a += 8;
+            posScale[ 3 ] = Double.parseDouble( s.replaceAll( "s0=", "" ) );
+        }
+    }
+    catmaidUrlFrame.setVisible( false );
+    if( a != 15 )
+    {
+        System.err.println( "invalid url" );
+        return null;
+    }
+    return posScale;
+}
+
+public void addKeyHandlerToViewer( BdvSource bdv )
+{
+    ViewerPanel panel = bdv.getBdvHandle().getViewerPanel();
+
+    KeyEventPostProcessor keyProcessor = new KeyEventPostProcessor()
+    {
+        public boolean postProcessKeyEvent( KeyEvent e )
+        {
+            if ( e.getID() == KeyEvent.KEY_PRESSED && e.getKeyCode() == KeyEvent.VK_K )
+            {
+                double xr = 4.0;
+                double yr = 4.0;
+                double zr = 40.0;
+                 
+                /*
+                 * Convert from microns (template unites) to nm, then from nm to catmaid pixel space
+                 */
+                RealPoint center = new RealPoint( 3 );
+                panel.displayToGlobalCoordinates( 0.5 * panel.getWidth(), 0.5 * panel.getHeight(), center );
+                double x = 1000 * center.getDoublePosition( 0 );
+                double y = 1000 * center.getDoublePosition( 1 );
+                double z = 1000 * center.getDoublePosition( 2 );
+
+                panel.displayToGlobalCoordinates( 0.5 * panel.getWidth() + 1, 0.5 * panel.getHeight(), center );
+                double dx = x - 1000 * center.getDoublePosition( 0 );
+                double dy = y - 1000 * center.getDoublePosition( 1 );
+                double dz = z - 1000 * center.getDoublePosition( 2 );
+
+                double d = 0.5 * Math.sqrt( dx * dx / xr + dy * dy / yr + dz * dz / zr );
+                double s = Math.log( d ) / Math.log( 2 ); // s = log_2(d)
+
+                DecimalFormat df = new DecimalFormat( "0.000000" );
+                DecimalFormat dfshort = new DecimalFormat( "0.0" );
+                String url = "https://neuropil.janelia.org/tracing/fafb/v14/?pid=1&sid0=5&xp=" + df.format( x ) + "&yp=" + df.format( y ) + "&zp=" + df.format( z ) + "&s0=" + dfshort.format( s ) + "&tool=navigator";
+
+                if ( Desktop.isDesktopSupported() )
+                {
+                    Desktop desktop = Desktop.getDesktop();
+                    try
+                    {
+                        desktop.browse( new URI( url ) );
+                    }
+                    catch ( IOException e1 )
+                    {
+                        e1.printStackTrace();
+                    }
+                    catch ( URISyntaxException e1 )
+                    {
+                        e1.printStackTrace();
+                    }
+                }
+                else
+                {
+                    Runtime runtime = Runtime.getRuntime();
+                    try
+                    {
+                        runtime.exec( "xdg-open " + url );
+                    }
+                    catch ( IOException e1 )
+                    {
+                        e1.printStackTrace();
+                    }
+                }
+
+                System.out.println( url );
+
+            }
+            else if ( e.getID() == KeyEvent.KEY_PRESSED && e.getKeyCode() == KeyEvent.VK_C )
+            {
+                double xr = 4.0;
+                double yr = 4.0;
+                double zr = 40.0;
+
+                double[] position = getCatmaidPositionFromUrl();
+                if ( position != null )
+                {
+                    double[] pt = new double[ 3 ];
+                    // to microns
+                    pt[ 0 ] = position[ 0 ] / 1000; 
+                    pt[ 1 ] = position[ 1 ] / 1000;
+                    pt[ 2 ] = position[ 2 ] / 1000;
+
+                    double catmaidScale = position[ 3 ];
+                    double bdvScale = 0.25 * 1000 * Math.pow( 2, -catmaidScale );
+
+                    double[] center = new double[] { panel.getWidth() / 2, panel.getHeight() / 2, 0 };
+                    double[] positionXfm = new double[ 3 ];
+
+                    AffineTransform3D newXfm = new AffineTransform3D();
+                    newXfm.scale( bdvScale );
+
+                    // translate the destination point to the center of the window
+                    newXfm.apply( pt, positionXfm );
+
+                    double[] translationVector = new double[ 3 ];
+                    for ( int d = 0; d < 3; d++ )
+                    {
+                        translationVector[ d ] = center[ d ] - positionXfm[ d ];
+                    }
+                    newXfm.translate( translationVector );
+
+                    animateTransformation( panel, newXfm );
+                }
+            }
+            return true;
+        }
+
+    };
+
+    KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventPostProcessor( keyProcessor );
+}
+
+public synchronized void animateTransformation( ViewerPanel panel, AffineTransform3D destinationXfm, int millis )
+{
+    AffineTransform3D startXfm = new AffineTransform3D();
+    panel.getState().getViewerTransform( startXfm );
+
+    double centerY = panel.getHeight() / 2.0;
+    double centerX = panel.getWidth() / 2.0;
+
+    SimilarityTransformAnimator3D currentAnimator = new SimilarityTransformAnimator3D( startXfm, destinationXfm, centerX, centerY, millis / 2 );
+
+    currentAnimator.setTime( System.currentTimeMillis() );
+    panel.transformChanged( destinationXfm );
+}
+
+public void animateTransformation( ViewerPanel panel, AffineTransform3D destinationXfm )
+{
+    animateTransformation( panel, destinationXfm, 300 );
+}
+
+public Source loadAndTransformJRC2018F( ImagePlus imp, String transformPath ) throws IOException, Exception
+{
+    RealTransform transform = N5DisplacementField.open( 
+            new N5HDF5Reader( transformPath, new int[]{ 3, 32, 32, 32 } ), "2/invdfield", true, new FloatType(),
+            new NLinearInterpolatorFactory());
+
+    ImagePlusLoader loaderP = new ImagePlusLoader( imp );
+    AbstractSpimData[] spimDataP = loaderP.loadAll( 0 );
+    
+    ArrayList converterSetups = new ArrayList();
+    ArrayList sources = new ArrayList();
+
+    BigDataViewer.initSetups( spimDataP[ 0 ], converterSetups, sources );
+
+    WarpedSource warpedSource = new WarpedSource( sources.get( 0 ).getSpimSource(), imp.getTitle() +"_warped" );
+    warpedSource.updateTransform( transform );
+    warpedSource.setIsTransformed( true );
+
+    return warpedSource;
+}
+
+public static Source loadFAFBXml( String xmlPath ) throws IOException
+{
+
+	AffineTransform3D toMicrons = new AffineTransform3D();
+	toMicrons.set( 0.001,  0,      0,     0, 
+				   0,      0.001,  0,     0,
+				   0,      0,      0.001, 0 );
+
+	converterSetups = new ArrayList();
+	sources = new ArrayList();
+	
+	XMLLoader loader = new XMLLoader( xmlPath );
+	SpimDataMinimal[] spimData = loader.load();
+
+	BigDataViewer.initSetups( spimData[ 0 ], converterSetups, sources );
+
+	Source rawsrc =  sources.get( 0 ).getSpimSource();
+	TransformedSource transformedSource = new TransformedSource( rawsrc );
+	transformedSource.setFixedTransform( toMicrons );
+
+	return transformedSource;
+}
+
+public Source loadFAFBN5( String n5Path, String datasetName ) throws IOException
+{
+    VoxelDimensions voxelDimensions = new FinalVoxelDimensions("um", new double[]{1, 1, 1});   
+    AffineTransform3D resolutionXfm = new AffineTransform3D();
+    resolutionXfm.set( 0.004,  0,  0,  0, 
+                       0,  0.004,  0,  0,
+                       0,  0, 0.04,  0.04 );
+    
+    boolean useVolatile = true; 
+
+    N5FSReader n5 =  new N5FSReader( n5Path, new GsonBuilder());
+
+    SharedQueue queue = new SharedQueue( Math.min( 8, Math.max(1, Runtime.getRuntime().availableProcessors() / 2)), 17 );
+
+    List srclist = new ArrayList(); 
+    List cachelist = new ArrayList(); 
+
+    int numScales = n5.list(datasetName).length;
+
+    RandomAccessibleInterval[] mipmaps = (RandomAccessibleInterval[])new RandomAccessibleInterval[numScales];
+    double[][] scales = new double[numScales][];
+
+    for (int s = 0; s < numScales; ++s)
+    {
+        DatasetAttributes attr = n5.getDatasetAttributes( datasetName + "/s" + s );
+        
+        // need more gymnastics to get scales
+        HashMap attrMap = n5.getAttributes( datasetName + "/s" + s  );
+
+        double[] scale;
+        if( !attrMap.keySet().contains( SCALE_KEY ))
+        {
+            scale = new double[]{ 1.0, 1.0, 1.0 };
+        }
+        else
+        {
+            scale = new double[]{
+                    attrMap.get( SCALE_KEY ).getAsJsonArray().get( 0 ).getAsDouble(),
+                    attrMap.get( SCALE_KEY ).getAsJsonArray().get( 1 ).getAsDouble(),
+                    attrMap.get( SCALE_KEY ).getAsJsonArray().get( 2 ).getAsDouble()
+            };
+        }
+        
+        RandomAccessibleInterval source = N5Utils.openVolatile( n5, datasetName + "/s" + s); 
+        mipmaps[s] = source;
+        scales[s] = scale;
+    }
+    
+    RandomAccessibleIntervalMipmapSource mipmapSource =
+            new RandomAccessibleIntervalMipmapSource(
+                    mipmaps,
+                    new UnsignedByteType(),
+                    scales,
+                    voxelDimensions,
+                    datasetName);
+
+    Source volatileMipmapSource;
+    if (useVolatile)
+    {
+        volatileMipmapSource = mipmapSource.asVolatile( queue );
+    }
+    else
+        volatileMipmapSource = mipmapSource;
+
+    TransformedSource transformedVolatileMipmapSource = new TransformedSource( volatileMipmapSource );
+    transformedVolatileMipmapSource.setFixedTransform( resolutionXfm );
+    
+    return transformedVolatileMipmapSource;
+}
+
+public String findPath( String[] label_dir_list, String file_name )
+{
+	String result = "";
+	for( String ld : label_dir_list )
+	{
+		if(  new File( ld ).exists() )
+		{
+			if( file_name != null && !file_name.isEmpty() )
+		    {
+		    	fimg = new File( ld + file_name );
+		    	if( fimg.exists() ){
+		     		result = ld + file_name;
+		     		return result;
+		    	}
+		    }else
+		    {
+		    	return ld;
+		    }
+		}
+	}
+	return result;
+}
+
+public String findElmDir()
+{
+    elmgitdir =  IJ.getDir("plugins") + "elm";
+    elmzipdir =  IJ.getDir("plugins") + "elm-master";
+
+    iselmgitdir = new File( elmgitdir ).exists();
+    iselmzipdir = new File( elmzipdir ).exists();
+
+    if( iselmgitdir && iselmzipdir )
+    {
+        IJ.error( "Warning: Found two elm folders!\nUsing:\n" + elmgitdir );
+        return elmgitdir;
+    }
+    else if( iselmgitdir )
+        return elmgitdir;
+    else if( iselmzipdir )
+        return elmzipdir;
+    else
+    {
+        IJ.error( "Could not find an elm folder in " + IJ.getDir("plugins")
+            + "\nPlease check that this script is in a folder called 'elm.'");
+        return "";
+    }
+}
+
+ImagePlus[] loadSingleImage( String path )
+{
+	System.out.println( "reading from : " + path );
+	try
+	{
+	    return new ImagePlus[]{ IJ.openImage( path )};
+	} 
+	catch ( IOException e ) {}
+
+	try
+	{
+		return BF.openImagePlus( path );		
+	}
+	catch ( IOException e ) { System.err.println( "load failed"); }
+
+	return null;
+}
+
+JFrame catmaidUrlFrame = new JFrame("CATMAID URL");
+
+// setup
+
+sys_default_image = "";
+sys_default_transform = "";
+
+elmdir = findElmDir();
+if( elmdir.isEmpty() )
+    return;
+else
+    elmdir = elmdir + File.separator;
+
+// get default paths
+imgDirList = new String[]{ elmdir, IMG_BASEDIR_LINUX,  IMG_BASEDIR_MAC, IMG_BASEDIR_WINDOWS };
+transformDirList = new String[]{ elmdir, DEFAULT_TRANSFORM_PATH_LINUX,  DEFAULT_TRANSFORM_PATH_MAC, DEFAULT_TRANSFORM_PATH_WINDOWS };
+
+sys_default_image = findPath( imgDirList, DEFAULT_IMAGE );
+sys_default_transform = findPath( transformDirList, DEFAULT_TRANSFORM );
+sys_default_fafbn5 = findPath( new String[]{ DEFAULT_FAFB_N5_LINUX, DEFAULT_FAFB_N5_MAC, DEFAULT_FAFB_N5_WINDOWS }, "" );
+
+FAFB_XML = elmdir + DEFAULT_FAFB_XML;
+
+if( sys_default_fafbn5.isEmpty() )
+{
+	if( ! new File( FAFB_XML ).exists() )
+	{
+		IJ.error( "Could not find the FAFB XML in " + IJ.getDir("plugins") );
+		return;
+	}
+
+	sys_default_fafbn5 = FAFB_XML;
+}
+
+
+// get parameters
+gd = new GenericDialogPlus( "BigWarp" );
+gd.addFileField( "Light template: ", sys_default_image );
+gd.addFileField( "FAFB source: ", sys_default_fafbn5 );
+gd.addFileField( "Transformation: ", sys_default_transform );
+gd.addCheckbox( "Auto discover", false );
+gd.showDialog();
+
+if (gd.wasCanceled())
+{
+	return;
+}
+
+templatePath = gd.getNextString();
+fafbPath = gd.getNextString();
+transformPath = gd.getNextString();
+autoDiscover = gd.getNextBoolean();
+
+
+// load data
+ImagePlus[] imp = loadSingleImage( templatePath );
+
+fafbSource = null;
+if( fafbPath.endsWith( ".xml" ))
+{
+	fafbSource = loadFAFBXml( fafbPath );
+}
+else if( fafbPath.endsWith( ".n5" ))
+{
+	fafbSource = loadFAFBN5( fafbPath, DEFAULT_FAFB_N5_DSET );
+}
+
+
+// visualize
+Source src= loadAndTransformJRC2018F( imp[0], transformPath );
+
+BdvOptions bdvOpts = BdvOptions.options().numRenderingThreads( 16 );
+BdvStackSource bdv = BdvFunctions.show( fafbSource, bdvOpts );
+BdvFunctions.show( src, bdvOpts.addTo( bdv ) );
+
+addKeyHandlerToViewer( bdv );
