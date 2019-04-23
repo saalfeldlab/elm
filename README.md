@@ -14,6 +14,7 @@ See also [elmr](https://github.com/jefferis/elmr), for interaction between the C
 
 
 ## Announcements
+* ``2019-Apr-23`` - Alternate script using transform to JRC2018-Female.
 * ``2018-Apr-18`` - Update to v14.
 * ``2017-Mar-09`` - Use Davi Bock's refinements for v13.
 * ``2017-Mar-08`` - Use Davi Bock's new landmarks for v13.
